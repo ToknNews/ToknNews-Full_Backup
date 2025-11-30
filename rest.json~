@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "toknnews-rest",
+      "script": "/var/www/toknnews-live/backend/rest/run_rest.py",
+      "interpreter": "/usr/bin/python3",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "env": {
+        "ENV": "production"
+      }
+    }
+  ]
+}

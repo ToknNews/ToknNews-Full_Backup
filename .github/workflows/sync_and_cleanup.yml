@@ -1,0 +1,56 @@
+name: Sync and Cleanup v1.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number for sync set (e.g. "1.0" to create sync_sets/v1.0)'
+        required: false
+        default: '1.0'
+      dry_run:
+        description: 'Preview mode (set "true" to simulate actions without changes)'
+        required: false
+        default: 'false'
+
+jobs:
+  sync_cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch full history to ensure branch creation works properly
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+
+      - name: Run sync and cleanup (dry-run mode)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          # Execute the sync/cleanup script in dry-run mode to preview changes
+          python scripts/sync_and_cleanup.py --version ${{ github.event.inputs.version }} --dry-run
+
+      - name: Run sync and cleanup (apply changes)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          # Execute the script to perform actual file moves and cleanup
+          python scripts/sync_and_cleanup.py --version ${{ github.event.inputs.version }}
+
+      - name: Commit and push changes
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          # Configure Git user for the automated commit
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          # Stage all changes produced by the script
+          git add -A
+          # Commit changes if there are any (skip commit if nothing changed)
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync v${{ github.event.inputs.version }} – repo clean, versioned, and restructured"
+            # Push the new branch to origin (creates branch if it doesn't exist)
+            git push origin HEAD:sync-cleanup-v${{ github.event.inputs.version }}
+          fi

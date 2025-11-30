@@ -1,0 +1,307 @@
+/* ==========================================================
+   TOKNNEWS DASHBOARD — CLEAN RESTORE BUILD
+   ========================================================== */
+
+/* === Minimal Summary (stub for legacy calls) === */
+async function loadSummary() {
+  try {
+    const res = await fetch("/data/heartbeat.json", { cache: "no-store" });
+    const hb = await res.json();
+    const totalEl = document.getElementById("sum-total");
+    if (totalEl && hb.total_compiles !== undefined) {
+      totalEl.textContent = hb.total_compiles.toLocaleString();
+    }
+  } catch (err) {
+    console.error("[loadSummary] Error:", err);
+  }
+}
+
+/* === Enhanced System Summary Loader (Aligned to heartbeat.json) === */
+async function loadSystemSummary() {
+  try {
+    const res = await fetch("/data/heartbeat.json", { cache: "no-store" });
+    const hb = await res.json();
+
+    // === STATUS ===
+    const statusEl = document.getElementById("status");
+    const uptimeEl = document.getElementById("uptime");
+    if (hb.status && hb.status.toLowerCase().includes("success")) {
+      statusEl.textContent = "Online";
+      statusEl.style.color = "#75FBB5";
+    } else {
+      statusEl.textContent = "Offline";
+      statusEl.style.color = "#ff6666";
+    }
+
+    // === CYCLE ===
+    const cycleEl = document.getElementById("cycle-health");
+    if (hb.timestamp) {
+      const last = new Date(hb.timestamp);
+      const minsAgo = Math.round((Date.now() - last.getTime()) / 60000);
+      const color =
+        minsAgo <= 5 ? "#75FBB5" : minsAgo <= 15 ? "#FFD166" : "#EF476F";
+      cycleEl.textContent = `Last run ${minsAgo} m ago`;
+      cycleEl.style.color = color;
+    } else {
+      cycleEl.textContent = "--";
+    }
+
+    // === VELOCITY ===
+    const velEl = document.getElementById("velocity");
+    velEl.textContent =
+      hb.total_compiles > 0
+        ? `${hb.total_compiles} compiles • ${hb.runtime_seconds}s`
+        : "--";
+
+    // === FEEDS ===
+    const srcEl = document.getElementById("sources");
+    srcEl.textContent =
+      (hb.active_sources && hb.active_sources > 0)
+        ? `${hb.active_sources} active`
+        : (hb.last_headline ? "Feeds updating" : "--");
+
+    // === SNAPSHOT ===
+    const snapEl = document.getElementById("snapshot");
+    if (hb.timestamp) {
+      const snap = new Date(hb.timestamp);
+      snapEl.textContent = snap.toLocaleTimeString();
+    } else {
+      snapEl.textContent = "--";
+    }
+
+    // === UPTIME ===
+    uptimeEl.textContent = hb.system_uptime || "--";
+  } catch (e) {
+    console.error("[Summary] error:", e);
+  }
+}
+/* === ToknNews Source Color Map === */
+const SOURCE_COLORS = {
+  // === Core Crypto / RSS Feeds (Tokn Blue family) ===
+  // === Core Crypto / RSS Feeds (Tokn Brand Palette) ===
+  "CoinDesk": "#00AAFF",          // Tokn Blue - flagship / industry standard
+  "Decrypt": "#75FBB5",           // Neon Green - tech-friendly, modern
+  "The Block": "#7A5FFF",         // Violet Blue - analysis / deep research
+  "CryptoSlate": "#B76CFD",       // Electric Purple - data + AI focus
+  "U.Today": "#FF4FD8",           // Hot Pink - culture / community
+  "AMBCrypto": "#FFC14D",         // Amber - retail energy
+  "BeInCrypto": "#00E0FF",        // Bright Cyan - global feed
+  "The Defiant": "#9B59B6",       // Soft Purple - DeFi / Web3
+  "Bitcoin Magazine": "#F7931A",  // Official Bitcoin orange
+  "CryptoBriefing": "#1ABC9C",    // Aqua green - market insight
+  "CoinJournal": "#29ABE2",       // Light Blue - general news
+  "CoinGape": "#00C897",          // Green teal - altcoin coverage
+  "Daily Hodl": "#8E44AD",        // Deep Purple - commentary
+  "NewsBTC": "#3498DB",           // Sky Blue - trading focus
+
+  // === Market & API Data Feeds (Neon Green / Brand Green) ===
+  "CoinCap": "#75FBB5",          // Tokn Neon Green - clean and neutral baseline
+  "CoinGecko": "#3DFF9E",        // Bright Lime Green - most active, vibrant feed
+  "CoinStats": "#00E0A3",        // Aqua Mint - analytics platform
+  "DexScreener": "#00FFB3",      // Neon Teal - charts & token screening
+  "Etherscan": "#00C2FF",        // Light Cyan - blockchain explorer
+  "DefiLlama": "#00FFDD",        // Aqua-Blue Hybrid - defi data aggregator
+  "PumpFun": "#8AFFC1",          // Pastel Mint - playful meme/volume signal
+  // === On-Chain & Vault Sources (Purple accent) ===
+  "Moralis": "#A020F0",
+  "Glassnode": "#B76CFD",
+
+  // === Social / Reddit / Community (Orange) ===
+  "Reddit": "#FFA500",
+  "r/CryptoCurrency": "#FFA500",
+  "r/EthFinance": "#FFA500",
+
+  // === Tech / AI / Research (Brand Contrast Set) ===
+  "TechCrunch": "#00E0FF",
+  "VentureBeat": "#FF66B2",
+  "OpenAI": "#10A37F",
+  "Anthropic": "#FF4B4B",
+  "Google DeepMind": "#4285F4",
+  "Stability AI": "#8E44AD",
+  "MIT Technology Review": "#FF0066",
+  "ArXiv": "#00CCCC",
+
+  // === Finance / General Media (Neutral tones) ===
+  "MarketWatch": "#CCCCCC",
+  "Reuters": "#C0C0C0",
+  "Bloomberg": "#9B59B6",
+  "Yahoo Finance": "#CCCCCC",
+  "CNBC": "#1E8449",
+
+  // === Fallback ===
+  "Unknown": "#00aaff"
+};
+function getSourceColor(src) {
+  return SOURCE_COLORS[src] ||
+         (src.includes("reddit") ? "#FFA500" :
+         src.includes("api") || src.includes("dex") || src.includes("cap") ? "#75FBB5" :
+         "#00aaff");
+}
+
+/* === Load Scene Log === */
+async function loadScenes() {
+  try {
+    const res = await fetch("/data/scenes_snapshot.json", { cache: "no-store" });
+    const data = await res.json();
+    const scenes = data.scenes || [];
+
+    const tbody = document.getElementById("scene-tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    scenes.slice(-1000).forEach(scene => {
+      const row = document.createElement("tr");
+      const time = new Date(scene.time).toLocaleString();
+      const sentiment = (scene.sentiment || "neutral").toLowerCase();
+      const source = scene.source || "—";
+
+      const color =
+        sentiment === "bullish"
+          ? "#66ff99"
+          : sentiment === "bearish"
+          ? "#ff6666"
+          : "#e6edf3";
+
+      row.innerHTML = `
+        <td>${time}</td>
+        <td>${scene.topic || "—"}</td>
+        <td style="color:${color}">${sentiment}</td>
+        <td style="color:${SOURCE_COLORS[source] || "#e6edf3"}">${source}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (err) {
+    console.error("[Scene Log Error]", err);
+  }
+}
+
+/* === Scene Activity Chart === */
+// === Wait for compiler_ready.flag before fetching data ===
+async function waitForCompilerReady(retries = 10, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch("/data/compiler_ready.flag", { cache: "no-store" });
+      if (res.ok) return true;
+    } catch (e) {}  
+    await new Promise(r => setTimeout(r, delay));
+  }
+  console.warn("[Dashboard] Compiler not ready after wait");
+  return false;
+}
+
+async function renderChart(rangeDays = 7) {
+  await waitForCompilerReady();
+  try {
+    const res = await fetch("/data/daily_counts.json", { cache: "no-store" });
+    const data = await res.json();
+
+    const days = Object.keys(data || {}).filter(d => data[d] > 0).sort();
+    const counts = days.map(day => data[day]);
+
+    const ctx = document.getElementById("sceneChart").getContext("2d");
+
+    // Destroy existing chart before redrawing
+    if (window.sceneChart && typeof window.sceneChart.destroy === "function") {
+      window.sceneChart.destroy();
+    }
+
+    // Tokn blue gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, "rgba(0, 170, 255, 0.9)");
+    gradient.addColorStop(1, "rgba(0, 90, 170, 0.2)");
+
+    window.sceneChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: days.slice(-rangeDays),
+        datasets: [{
+          label: "Scenes per Day",
+          data: counts.slice(-rangeDays),
+          backgroundColor: gradient,
+          borderColor: "#00aaff",
+          borderWidth: 2,
+          borderRadius: 6,
+          hoverBackgroundColor: "rgba(0, 170, 255, 1)"
+        }]
+      },
+      options: {
+       maintainAspectRatio: false,
+       responsive: true,
+       resizeDelay: 0,
+       interaction: {
+         mode: 'nearest',
+         intersect: true
+       },
+
+        scales: {
+          x: {
+            ticks: { color: "#e6edf3" },
+            grid: { color: "rgba(255,255,255,0.05)" }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#e6edf3" },
+            grid: { color: "rgba(255,255,255,0.08)" }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: "#5ac8ff" }
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.error("[Chart Error]", err);
+  }
+}
+
+/* === Range Selector === */
+const rangeSelect = document.getElementById("range-select");
+if (rangeSelect) {
+  rangeSelect.addEventListener("change", e => {
+    const days = e.target.value === "all" ? 60 : parseInt(e.target.value);
+    renderChart(days);
+  });
+}
+
+/* === Sliding Drawer Controls === */
+const menuBtn = document.getElementById("menu-btn");
+const overlay = document.getElementById("overlay");
+const drawer = document.getElementById("drawer");
+
+if (menuBtn && overlay && drawer) {
+  menuBtn.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+    overlay.classList.toggle("show");
+  });
+
+  overlay.addEventListener("click", () => {
+    drawer.classList.remove("open");
+    overlay.classList.remove("show");
+  });
+}
+
+/* === Initial Load === */
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await loadSystemSummary();   // ← add this line
+    await loadSummary();
+    await renderChart(7);
+    await loadScenes();
+  } catch (err) {
+    console.error("[Init Error]", err);
+  }
+});
+/* === Auto-refresh every 60 seconds === */
+setInterval(async () => {
+  try {
+    console.log("[Dashboard] 🔄 Refreshing data...");
+    await loadSystemSummary();
+    await loadSummary();
+    await renderChart(7);
+    await loadScenes();
+  } catch (err) {
+    console.error("[Dashboard] Auto-refresh error:", err);
+  }
+}, 60000); // refresh every 60s

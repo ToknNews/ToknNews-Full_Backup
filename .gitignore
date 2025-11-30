@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Audio output
+data/audio/
+data/shows/
+data/broadcast/
+
+# Logs
+*.log
+*.tmp
+
+# PM2 runtime
+pm2_runtime.json
+
+# Compiled assets
+*.wav
+*.mp3
+data/heartbeat.json
+data/episodes/
+data/rolling_stories.json
+logs/
+__pycache__/
+*.pyc

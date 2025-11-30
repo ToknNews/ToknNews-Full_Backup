@@ -1,0 +1,21 @@
+{
+  "id": "compiletest1",
+  "headline": "AI startup raises $55M for next-gen LLM hardware",
+  "url": "",
+  "source": "manual",
+  "ts": 123.0,
+  "category": "Technology",
+  "sentiment": "Positive",
+  "importance": 8,
+  "summary": "An AI startup has successfully raised $55 million to develop next-generation hardware for large language models, indicating significant investment and interest in advancing AI infrastructure.",
+  "domain": "venture",
+  "primary_character": "Cap Silver",
+  "secondary_character": "Neura Grey",
+  "chip_involved": false,
+  "chip_reaction": null,
+  "chip_tone": null,
+  "chip_quip": null,
+  "reason_primary": "Primary chosen by domain='venture' and headline cues.",
+  "reason_secondary": "Secondary chosen by nuance in headline."
+}
+

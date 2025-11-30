@@ -1,0 +1,33 @@
+{
+  "intro_played": true,
+  "last_segment_type": "headline",
+  "last_anchor_used": null,
+  "vega_last_used": 0,
+  "bitsy_last_used": 0,
+  "cycle_index": 27,
+  "chip_memory": {
+    "last_theme": null,
+    "last_risk": null,
+    "last_toss_target": null
+  },
+  "anchor_memory": {
+    "reef": {
+      "last_used": 0
+    },
+    "lawson": {
+      "last_used": 0
+    },
+    "bond": {
+      "last_used": 0
+    },
+    "ivy": {
+      "last_used": 0
+    },
+    "cash": {
+      "last_used": 0
+    },
+    "ledger": {
+      "last_used": 0
+    }
+  }
+}

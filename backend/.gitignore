@@ -1,0 +1,36 @@
+# Runtime + logs
+*.log
+*.pid
+__pycache__/
+pm2/logs/
+*.pyc
+
+# Audio and rendered files
+script_engine/audio/processed/
+script_engine/audio/mix/
+script_engine/audio/blocks/
+data/broadcast_blocks/
+data/episodes/
+tokn-audio-cache/
+
+# Data ingestion output
+data/rolling_stories.json
+data/top_stories.json
+
+# Temp
+tmp/
+cache/
+*.tmp
+.DS_Store
+
+# Credentials
+data/feeds/sources.json
+*.env
+ENV/
+.env*
+
+# Old ai_export (not used in live system)
+ai_export/
+script_engine/director/director_state.json
+*~
+script_engine/director/director_state.json

@@ -1,0 +1,117 @@
+# backend/script_engine/director/breaking_logic.py
+
+# -------- Escalation Level Engine (Stage 6/7) --------
+
+def compute_escalation_level(story_queue, state, daypart, energy):
+    """
+    Computes escalation from 0–3 based on recency, tone, and story load.
+    Lightweight version — can be expanded later.
+    """
+
+    # No stories → lowest escalation
+    if not story_queue:
+        return 0
+
+    story = story_queue[0]
+    sentiment = story.get("sentiment", "neutral")
+    importance = story.get("importance", 5)
+    headline = (story.get("headline") or "").lower()
+
+    level = 0
+
+    # High-importance story → escalate
+    if importance >= 8:
+        level += 1
+
+    # Negative sentiment → escalate
+    if sentiment == "negative":
+        level += 1
+
+    # Trigger words → escalate hard
+    triggers = ["hack", "exploit", "rug", "bankrupt", "halted", "drains"]
+    if any(t in headline for t in triggers):
+        level += 1
+
+    # Late night → increase volatility
+    if daypart == "late_night" and sentiment == "negative":
+        level += 1
+
+    return min(level, 3)
+
+def check_breaking_interrupt(state):
+    """
+    Minimal version:
+    If anything is in state.breaking_queue, treat it as breaking news.
+    Later this will check severity, age, domain, etc.
+    """
+    if not state.breaking_queue:
+        return None
+
+    return state.breaking_queue[0]  # top of queue
+
+# -------- Show Reset Helper (Stage 6/7) --------
+
+from datetime import datetime, timedelta
+
+def should_reset_show(state, story_queue):
+    print("\n--- DEBUG: should_reset_show ---")
+    print("last_intro_age_minutes      =", (datetime.utcnow() - state.last_intro_time).total_seconds() / 60)
+    print("intro_interval_minutes      =", state.intro_interval_minutes)
+    print("last_reset_age_minutes      =", (datetime.utcnow() - state.last_reset_time).total_seconds() / 60)
+    print("reset_interval_minutes      =", state.reset_interval_minutes)
+    print("story_queue_length          =", len(story_queue))
+    print("segment_history_last        =", state.segment_history[-1] if state.segment_history else None)
+    print("breaking_queue_empty        =", not state.breaking_queue)
+    """
+    Returns True if Chip should perform a mid-show reset.
+    Very lightweight conditions — full tuning comes later.
+    """
+
+    now = datetime.utcnow()
+
+    # 1. Hard reset: too long since last Intro
+    if now - state.last_intro_time > timedelta(minutes=state.intro_interval_minutes):
+        return True
+
+    # 2. Soft reset interval
+    if now - state.last_reset_time > timedelta(minutes=state.reset_interval_minutes):
+        return True
+
+    # 3. Many fresh headlines (e.g., RSS/API flood)
+    if len(story_queue) >= 3:
+        return True
+
+    # 4. Breaking news just ended
+    if (
+        state.segment_history 
+        and state.segment_history[-1] == "breaking" 
+        and not state.breaking_queue
+    ):
+        return True
+
+    return False
+
+def reset_allowed(state):
+    print("\n--- DEBUG: reset_allowed ---")
+    print("escalation_level            =", getattr(state, "escalation_level", None))
+    print("last_reset_age_seconds      =", (datetime.utcnow() - state.last_reset_time).total_seconds())
+    print("reset_cooldown_seconds      =", state.reset_cooldown_seconds)
+    """
+    Returns True if Chip Reset is eligible based on:
+    - cooldown timing
+    - escalation level
+    """
+    from datetime import datetime, timedelta
+
+    now = datetime.utcnow()
+
+    # cooldown check
+    since_last_reset = (now - state.last_reset_time).total_seconds()
+    if since_last_reset < state.reset_cooldown_seconds:
+        return False
+
+    # require moderate or higher escalation
+    if getattr(state, "escalation_level", 0) < 2:
+        return False
+
+    return True

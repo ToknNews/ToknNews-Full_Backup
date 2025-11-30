@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>TOKN Audio Dashboard</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: url('/static/YT_Banner_Tokn.jpg') no-repeat center center fixed;
+        background-size: cover;
+        font-family: Arial, sans-serif;
+        color: #fff;
+    }
+
+    .logo {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 180px;
+    }
+
+    .panel {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.75);
+        padding: 30px;
+        width: 600px;
+        max-height: 70vh;
+        overflow-y: auto;
+        border-radius: 12px;
+        box-shadow: 0px 0px 25px rgba(0,0,0,0.8);
+    }
+
+    h1 {
+        text-align: center;
+        margin-top: 0;
+        font-size: 26px;
+        font-weight: 600;
+    }
+
+    h2 {
+        border-bottom: 1px solid #555;
+        padding-bottom: 5px;
+        margin-top: 25px;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    a {
+        color: #75FBB5;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+</head>
+
+<body>
+
+<img class="logo" src="/static/Tokn_Logo_Main_4.png" />
+
+<div class="panel">
+    <h1>TOKN Audio Files</h1>
+
+    <!-- Dynamic content inserted by Flask -->
+    {{ audio_html | safe }}
+
+</div>
+
+</body>
+</html>

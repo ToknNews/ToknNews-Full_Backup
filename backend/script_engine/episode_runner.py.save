@@ -1,0 +1,42 @@
+                scene_counter += 1
+
+        elif seg_type == "deep_dive":
+            story = segment["story"]
+            primary = story.get("anchors", ["chip"])[0]
+            pd_flags = run_pd(story["headline"], primary)
+            pkg = generate_script(
+                headline=story["headline"],
+                article_context=story["summary"],
+                cluster_articles=[],
+                character=primary,
+                pd_config=pd_flags,
+                is_deep_dive=True,
+                scene_id=f"scene{scene_counter}"
+            )
+            block_path = save_block(pkg, f"scene{scene_counter}")
+            block_paths.append(block_path)
+            scene_counter += 1
+
+        elif seg_type == "anchor_analysis":
+            primary = segment.get("anchors", ["chip"])[0]
+            pd_flags = run_pd(segment["headline"], primary)
+            pkg = generate_script(
+                headline=segment["headline"],
+                article_context=segment["summary"],
+                cluster_articles=[],
+                character=primary,
+                pd_config=pd_flags,
+                scene_id=f"scene{scene_counter}"
+            )
+            block_path = save_block(pkg, f"scene{scene_counter}")
+            block_paths.append(block_path)
+            scene_counter += 1
+
+    return block_paths
+
+# ----------------------------------------------------------------
+# Entrypoint
+# ----------------------------------------------------------------
+if __name__ == "__main__":
+    files = run_episode()
+    print("[EpisodeRunner] Complete:", files)

@@ -1,0 +1,64 @@
+{
+  "apps": [
+    {
+      "name": "tokn-ingest",
+      "script": "/opt/toknnews/backend/rest/routes/ingest_v2/run_cycle_pm2.py",
+      "interpreter": "python3",
+      "watch": false,
+      "restart_delay": 5000,
+      "env": {
+        "PYTHONPATH": "/opt/toknnews:/opt/toknnews/backend",
+        "VAULT_ADDR": "http://127.0.0.1:8200",
+        "VAULT_TOKEN": "root"
+      }
+    },
+    {
+      "name": "tokn-rest",
+      "script": "/opt/toknnews/backend/rest/run_rest_pm2.py",
+      "interpreter": "python3",
+      "watch": false,
+      "restart_delay": 5000,
+      "env": {
+        "PYTHONPATH": "/opt/toknnews:/opt/toknnews/backend",
+        "VAULT_ADDR": "http://127.0.0.1:8200",
+        "VAULT_TOKEN": "root"
+      }
+    },
+    {
+      "name": "tokn-episode",
+      "script": "/opt/toknnews/backend/script_engine/episode_runner_pm2.py",
+      "interpreter": "python3",
+      "watch": false,
+      "restart_delay": 5000,
+      "env": {
+        "PYTHONPATH": "/opt/toknnews:/opt/toknnews/backend",
+        "VAULT_ADDR": "http://127.0.0.1:8200",
+        "VAULT_TOKEN": "root"
+      }
+    },
+    {
+      "name": "tokn-render",
+      "script": "/opt/toknnews/backend/render_controller_pm2.py",
+      "interpreter": "python3",
+      "watch": false,
+      "restart_delay": 5000,
+      "env": {
+        "PYTHONPATH": "/opt/toknnews:/opt/toknnews/backend",
+        "VAULT_ADDR": "http://127.0.0.1:8200",
+        "VAULT_TOKEN": "root"
+      }
+    },
+    {
+      "name": "tokn-audio",
+      "script": "/opt/toknnews/backend/audio_dashboard/server.py",
+      "interpreter": "python3",
+      "watch": false,
+      "restart_delay": 5000,
+      "env": {
+        "PYTHONPATH": "/opt/toknnews:/opt/toknnews/backend",
+        "VAULT_ADDR": "http://127.0.0.1:8200",
+        "VAULT_TOKEN": "root"
+      }
+    }
+  ]
+}

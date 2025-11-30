@@ -1,0 +1,178 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-11-05T00:00:00Z",
+
+  "moods": {
+    "bullish": {
+      "verbs": [
+        "shouts","proclaims","declares","announces","roars","celebrates",
+        "explodes","blasts","reveals","calls out","proclaims loudly","emphasizes boldly"
+      ],
+      "adjectives": [
+        "booming","energized","triumphant","thrilled","electrified","unstoppable",
+        "confident","explosive","charged","victorious"
+      ],
+      "rhetoric": [
+        "markets are on fire","momentum is roaring","it’s a breakout moment",
+        "you can feel the surge","the charts are lit up","bulls running wild"
+      ],
+      "transitions": [
+        "let’s break it down","watch this move","that’s massive","brace for more","this story’s still climbing"
+      ]
+    },
+
+    "bearish": {
+      "verbs": [
+        "warns","admits","remarks","notes","concedes","mutters","signals","acknowledges","confides"
+      ],
+      "adjectives": [
+        "tense","measured","grim","skeptical","muted","somber","uneasy","flat"
+      ],
+      "rhetoric": [
+        "sentiment cooling","momentum fading","traders pulling back","the mood turning cautious"
+      ],
+      "transitions": [
+        "time to zoom out","a pause before the next storm","the tone’s shifting","let’s keep perspective"
+      ]
+    },
+
+    "neutral": {
+      "verbs": [
+        "reports","states","explains","confirms","summarizes","recaps","details"
+      ],
+      "adjectives": [
+        "steady","balanced","focused","composed","clear","poised"
+      ],
+      "rhetoric": [
+        "here’s the latest","the update is clear","let’s walk through it"
+      ],
+      "transitions": [
+        "in other news","meanwhile","continuing coverage","staying on that theme"
+      ]
+    },
+
+    "breaking": {
+      "verbs": [
+        "interrupts","cuts in","announces urgently","exclaims","reveals live"
+      ],
+      "adjectives": [
+        "urgent","immediate","developing","breaking","live"
+      ],
+      "rhetoric": [
+        "this just in","developing right now","hot off the wire"
+      ],
+      "transitions": [
+        "more details incoming","stay tuned","we’re watching this closely"
+      ]
+    },
+
+    "hype": {
+      "verbs": [
+        "laughs","cheers","yells","hypes","celebrates","rallies","pumps"
+      ],
+      "adjectives": [
+        "wild","electric","chaotic","massive","unstoppable","feral"
+      ],
+      "rhetoric": [
+        "this is absolute madness","crowds are loving it","energy’s through the roof"
+      ],
+      "transitions": [
+        "hang on to your seat","you won’t believe this next one"
+      ]
+    },
+
+    "humor": {
+      "verbs": [
+        "jokes","smirks","grins","teases","chuckles","quips"
+      ],
+      "adjectives": [
+        "playful","sarcastic","lighthearted","mischievous","deadpan"
+      ],
+      "rhetoric": [
+        "guess who’s back","no kidding","the meme writes itself","you can’t make this up"
+      ],
+      "transitions": [
+        "meanwhile in crypto land","on a lighter note","back to the circus"
+      ]
+    },
+
+    "serious": {
+      "verbs": [
+        "states firmly","declares with authority","remarks gravely","warns seriously"
+      ],
+      "adjectives": [
+        "solemn","measured","weighty","serious","grounded"
+      ],
+      "rhetoric": [
+        "this one matters","beyond the noise","let’s talk impact"
+      ],
+      "transitions": [
+        "more context ahead","digging deeper","stay with me"
+      ]
+    }
+  },
+
+  "camera_moves": [
+    "camera sweeps left across the desk",
+    "tight push-in toward Chip’s face",
+    "dynamic zoom as Chip gestures toward chart",
+    "slow pan across the ticker wall",
+    "dolly-in as Chip emphasizes the headline",
+    "wide shot resetting perspective",
+    "cut to side monitor for visual context"
+  ],
+
+  "gestures": [
+    "leans forward with intensity",
+    "points at the chart",
+    "claps once for emphasis",
+    "raises a finger to punctuate the point",
+    "spreads arms wide in disbelief",
+    "taps the desk twice",
+    "shrugs with a grin",
+    "folds hands before continuing"
+  ],
+
+  "motion_phrases": [
+    "camera zooms as Chip leans in",
+    "wide shot catches Chip gesturing broadly",
+    "camera cuts to over-shoulder view",
+    "dolly pull-back as Chip resets posture",
+    "push-in timed with Chip’s rising tone"
+  ],
+
+  "energy_modifiers": [
+    "with conviction",
+    "laughing mid-sentence",
+    "under his breath",
+    "as his voice rises",
+    "in a quick burst",
+    "slowing for dramatic effect"
+  ],
+
+  "rhetorical_hooks": {
+    "callouts": [
+      "look at this","listen up","you’re gonna love this","check this out"
+    ],
+    "contrasts": [
+      "but here’s the twist","on the flip side","yet there’s more","however that’s not all"
+    ],
+    "repetitions": [
+      "again and again","time after time","once more for the record"
+    ],
+    "humor": [
+      "no kidding","that’s not a typo","classic crypto moment"
+    ],
+    "metaphors": [
+      "a rocket without fuel","paper hands paradise","the floor’s lava",
+      "the market’s heartbeat","digital gold rush"
+    ]
+  },
+
+  "update_policy": {
+    "auto_update": true,
+    "source": "/var/www/toknnews/data/scene_feedback.json",
+    "threshold": 0.7,
+    "decay_rate": 0.05
+  }
+}

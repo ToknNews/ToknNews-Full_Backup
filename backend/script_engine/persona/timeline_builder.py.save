@@ -1,0 +1,242 @@
+w#!/usr/bin/env python3
+"""
+timeline_builder.py
+TOKEN NEWS — PHASE 2 REBUILD (2025-02)
+
+Responsibilities:
+ - Build full episode timeline
+ - Enforce Vega intro → Chip intro → Rundown → Stories → Chip outro
+ - Provide deterministic structure & pacing
+ - Maintain conversational flow via previous_line propagation
+ - Activate duo exchanges only on high-heat domains
+ - Call openai_writer.write_line_safe for all generative content
+
+This module is intentionally simple, stable, and PD-friendly.
+"""
+
+import time
+from script_engine.openai_writer import write_line_safe
+from script_engine.director.pd_controller import run_pd
+
+# ============================================================
+# BLOCK HELPERS
+# ============================================================
+
+def _block(text, speaker, tag):
+    return {
+        "speaker": speaker,
+        "text": text,
+        "tag": tag,
+        "timestamp": time.time()
+    }
+
+def _audio_block(text, speaker, tag, voice_map):
+    return {
+        "speaker": speaker,
+        "voice_id": voice_map.get(speaker, voice_map["chip"]),
+        "text": text,
+        "block_type": tag,
+        "timestamp": time.time()
+    }
+
+# ============================================================
+# RUNDOWN CLEANER (strict, ultra-short)
+# ============================================================
+
+def make_micro_headline(headline: str) -> str:
+    """
+    Turns a full headline into a broadcast-ready micro line (~8–12 words).
+    """
+    words = headline.split()
+    if len(words) <= 12:
+        return headline
+    return " ".join(words[:12]) + "…"
+
+
+# ============================================================
+# DUO ACTIVATION RULES
+# ============================================================
+
+HIGH_HEAT_DOMAINS = {"macro", "markets", "regulation", "defi", "onchain", "ai"}
+
+def should_enable_duo(domain: str) -> bool:
+    return domain in HIGH_HEAT_DOMAINS
+
+
+# ============================================================
+# MAIN TIMELINE BUILDER
+# ============================================================
+
+def build_timeline(
+    story_clusters: list,
+    daypart: str = "evening",
+    show_mode: str = "NEWS",
+    voice_map: dict = None
+):
+    """
+    story_clusters = episode_builder.rundown[] list
+    Produces:
+        - vega intro
+        - chip intro
+        - rundown bullets
+        - 5–6 stories, each with:
+            - transition
+            - anchor analysis
+            - optional duo exchange
+        - chip outro
+    """
+
+    # Fallback voice_map
+    if voice_map is None:
+        from script_engine.persona.voice_map import VOICE_MAP
+        voice_map = VOICE_MAP
+
+    timeline = []
+    audio = []
+
+    # Initialize scene_state (mutates every block)
+    scene_state = {
+        "current_anchor": "chip",
+        "previous_line": None,
+        "daypart": daypart,
+        "show_mode": show_mode,
+        "segment_type": "intro",
+        "pd_flags": {},
+        "episode_index": 0,
+        "block_index": 0,
+        "cast_list": []
+    }
+
+    # ============================================================
+    # VEGA INTRO (always first)
+    # ============================================================
+
+    vega_intro = "You're watching Token News."
+    timeline.append(_block(vega_intro, "vega", "vega_intro"))
+    audio.append(_audio_block(vega_intro, "vega", "vega_intro", voice_map))
+
+    scene_state["previous_line"] = {"speaker": "vega", "text": vega_intro}
+    scene_state["block_index"] += 1
+
+    # ============================================================
+    # CHIP INTRO (daypart-based only)
+    # ============================================================
+
+    chip_intro = f"Good {daypart}, welcome to Token News."
+    timeline.append(_block(chip_intro, "chip", "chip_intro"))
+    audio.append(_audio_block(chip_intro, "chip", "chip_intro", voice_map))
+
+    scene_state["previous_line"] = {"speaker": "chip", "text": chip_intro}
+    scene_state["block_index"] += 1
+
+    # ============================================================
+    # RUNDOWN BULLETS
+    # ============================================================
+
+    micro = [make_micro_headline(item["headline"]) for item in story_clusters[:6]]
+
+    rundown_text = "Here’s what’s ahead:\n" + "\n".join(f"• {m}" for m in micro)
+
+    timeline.append(_block(rundown_text, "chip", "chip_rundown"))
+    audio.append(_audio_block(rundown_text, "chip", "chip_rundown", voice_map))
+
+    scene_state["previous_line"] = {"speaker": "chip", "text": rundown_text}
+    scene_state["block_index"] += 1
+
+    # ============================================================
+    # STORY LOOPS
+    # ============================================================
+
+    for idx, story in enumerate(story_clusters[:6]):
+        headline = story["headline"]
+        summary  = story.get("summary", "")
+        domain   = story.get("domain", "general")
+        anchors  = story.get("anchors", ["chip"])
+
+        primary = anchors[0]
+        secondary = anchors[1] if len(anchors) > 1 else None
+
+        # Ask PD which segment type and flags to apply
+        pd_cfg = run_pd(
+            headline         = headline,
+            suggested_anchor = primary,
+            story_index      = idx,
+            total_stories    = len(story_clusters)
+        )
+
+        scene_state["pd_flags"] = pd_cfg
+
+        # ---------------------------------------------
+        # CHIP → STORY TRANSITION (strict 1 sentence)
+        # ---------------------------------------------
+        scene_state["segment_type"] = "transition"
+        t = write_line_safe(
+            task_type   = "transition",
+            persona     = "chip",
+            headline    = headline,
+            synthesis   = "",
+            scene_state = scene_state,
+            episode_id  = "episode",
+            block_index = scene_state["block_index"]
+        )
+
+        timeline.append(_block(t, "chip", "chip_transition"))
+        audio.append(_audio_block(t, "chip", "chip_transition", voice_map))
+
+        scene_state["previous_line"] = {"speaker": "chip", "text": t}
+        scene_state["block_index"] += 1
+
+        # ---------------------------------------------
+        # PRIMARY ANCHOR ANALYSIS
+        # ---------------------------------------------
+        scene_state["segment_type"] = "analysis"
+        a = write_line_safe(
+            task_type   = "analysis",
+            persona     = primary,
+            headline    = headline,
+            synthesis   = summary,
+            scene_state = scene_state,
+            episode_id  = "episode",
+            block_index = scene_state["block_index"]
+        )
+
+        timeline.append(_block(a, primary, "anchor_analysis"))
+        audio.append(_audio_block(a, primary, "anchor_analysis", voice_map))
+
+        scene_state["previous_line"] = {"speaker": primary, "text": a}
+        scene_state["block_index"] += 1
+
+        # ---------------------------------------------
+        # DUO (only high heat)
+        # ---------------------------------------------
+        if secondary and should_enable_duo(domain):
+            scene_state["segment_type"] = "duo"
+
+            d = write_line_safe(
+                task_type   = "duo",
+                persona     = secondary,
+                headline    = headline,
+                synthesis   = summary,
+                scene_state = scene_state,
+                episode_id  = "episode",
+                block_index = scene_state["block_index"]
+            )
+
+            timeline.append(_block(d, secondary, "duo_exchange"))
+            audio.append(_audio_block(d, secondary, "duo_exchange", voice_map))
+
+            scene_state["previous_line"] = {"speaker": secondary, "text": d}
+            scene_state["block_index"] += 1
+
+    # ============================================================
+    # CHIP OUTRO (fixed)
+    # ============================================================
+
+    outro = "Thank you for watching ToknNews — we’ll see you next cycle."
+    timeline.append(_block(outro, "chip", "chip_outro"))
+    audio.append(_audio_block(outro, "chip", "chip_outro", voice_map))
+
+    return {
+        "blocks": timeline,
+        "audio_blocks": audio
+    }

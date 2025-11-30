@@ -1,0 +1,294 @@
+/* --- TOKN Dashboard Theme --- */
+:root {
+  --tokn-blue:#00aaff;
+  --tokn-light:#5ac8ff;
+  --tokn-bg:#05060a;
+  --card:#0a0f14aa;
+  --line:#20262d;
+  --text:#e6edf3;
+  --bullish:#00c896;
+  --bearish:#ff5555;
+  --neutral:#ccc;
+}
+
+/* === Body === */
+body {
+  font-family: Inter, Arial, sans-serif;
+  color: var(--text);
+  background:
+    linear-gradient(rgba(0,0,0,.85), rgba(0,0,0,.45)),
+    url('/YT_Banner_Tokn.jpg') center center / cover no-repeat;
+  background-color: #05060a;
+  margin: 0;
+  padding: 20px;
+}
+
+/* === Header & Logo === */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.logo {
+  width: 100px;
+  filter: drop-shadow(0 0 10px var(--tokn-blue));
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%,100% { filter: drop-shadow(0 0 10px var(--tokn-blue)); }
+  50% { filter: drop-shadow(0 0 20px var(--tokn-light)); }
+}
+
+/* === Heartbeat Indicator === */
+#pulse {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 10px #00ff88;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: .9; }
+  50% { transform: scale(1.4); opacity: .4; }
+  100% { transform: scale(1); opacity: .9; }
+}
+
+/* === Cards === */
+section {
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 10px;
+  background: rgba(10,15,20,0.15);
+  box-shadow: 0 0 20px #00aaff22;
+  backdrop-filter: blur(6px);
+}
+h2 { color: var(--tokn-blue); margin-bottom: 12px; }
+
+/* === Summary === */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap: 12px;
+  text-align: center;
+}
+.summary div {
+  background: rgba(255,255,255,.05);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* === Tables === */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+th { color: var(--tokn-blue); }
+tbody tr:hover { background: rgba(255,255,255,.05); }
+
+footer {
+  text-align: right;
+  margin-top: 10px;
+  font-size: .8rem;
+  color: #9aa4ae;
+}
+
+/* ==============================================================
+   CLEAN HAMBURGER MENU + DRAWER (DEDUPED)
+   ============================================================== */
+
+/* === Hamburger Button === */
+#menu-btn {
+  width: 30px;
+  height: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  z-index: 50; /* ensure above drawer */
+}
+#menu-btn span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tokn-light);
+  transition: all 0.25s ease-in-out;
+}
+#menu-btn:hover span {
+  background: var(--tokn-blue);
+  box-shadow: 0 0 6px var(--tokn-blue);
+}
+
+/* === Overlay === */
+#overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 25;
+  transition: opacity 0.25s ease-in-out;
+}
+#overlay.show {
+  display: block;
+}
+
+/* === Drawer === */
+#drawer {
+  position: fixed;
+  right: -320px;
+  top: 0;
+  width: 280px;
+  height: 100vh;
+  background: rgba(10, 15, 20, 0.96);
+  border-left: none; /* no bright edge */
+  box-shadow: inset 1px 0 0 rgba(0,170,255,0.25),
+              -6px 0 25px rgba(0,170,255,0.25);
+  backdrop-filter: blur(10px);
+  z-index: 20; /* below hamburger */
+  padding: 22px 20px;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  transition: right 0.35s ease-in-out;
+}
+#drawer.open {
+  right: 0;
+  z-index: 40; /* rise above everything when open */
+}
+#drawer h3 {
+  color: #5ac8ff;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.drawer-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.drawer-btn {
+  display: block;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #00aaff33, #00aaff11);
+  border: 1px solid rgba(0,170,255,0.3);
+  color: #e6edf3;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 0 12px rgba(0,170,255,0.2);
+  transition: all 0.25s ease-in-out;
+}
+.drawer-btn:hover {
+  background: rgba(0,170,255,0.2);
+  box-shadow: 0 0 20px rgba(0,170,255,0.4);
+  transform: translateX(-3px);
+}
+
+/* === Scene Log Scrollbar + Chart === */
+#scene-tbody {
+  display: block;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#scene-log thead,
+#scene-tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+#scene-log thead {
+  width: calc(100% - 0.5em);
+}
+.scene-log-container {
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 10px;
+  background: rgba(10, 15, 20, 0.6);
+  border: 1px solid rgba(0, 170, 255, 0.2);
+  box-shadow: 0 0 12px #00aaff22;
+}
+.scene-log-container::-webkit-scrollbar {
+  width: 10px;
+}
+.scene-log-container::-webkit-scrollbar-track {
+  background: rgba(10, 15, 20, 0.4);
+  border-radius: 10px;
+}
+.scene-log-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00aaff, #0077cc);
+  border-radius: 10px;
+  box-shadow: 0 0 6px #00aaff55;
+}
+.scene-log-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #33cfff, #00aaff);
+}
+.chart-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.chart-toolbar label {
+  color: var(--tokn-light);
+  font-size: 0.9rem;
+}
+.chart-toolbar select {
+  background: #0f1621;
+  color: var(--text);
+  border: 1px solid rgba(0,170,255,0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  max-height: 60vh;
+  padding: 10px;
+  background: rgba(10, 15, 20, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 0 25px rgba(0, 170, 255, 0.15);
+  border: 1px solid rgba(0, 170, 255, 0.25);
+}
+
+#sceneChart {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+/* === Tokn Source Color Codes === */
+.source-reddit        { color: #ff4500; }     /* Reddit */
+.source-coindesk      { color: #00c3ff; }     /* Coindesk */
+.source-cointelegraph { color: #ffcc00; }     /* CoinTelegraph */
+.source-theblock      { color: #ff66ff; }     /* The Block */
+.source-dexscreener   { color: #66ffcc; }     /* DexScreener */
+.source-pumpfun       { color: #ff6699; }     /* PumpFun */
+.source-etherscan     { color: #9966ff; }     /* Etherscan */
+.source-cryptopanic   { color: #ffaa33; }     /* CryptoPanic */
+.source-moralis       { color: #00ffaa; }     /* Moralis API */
+.source-binance       { color: #f3ba2f; }     /* Binance Feed */
+.source-defillama     { color: #99e0ff; }     /* DeFiLlama */
+.source-coinmarketcap { color: #0052ff; }     /* CoinMarketCap */
+.source-youtube       { color: #ff0000; }     /* YouTube */
+.source-twitter       { color: #1da1f2; }     /* X/Twitter */
+.source-unknown,
+.source-other         { color: #888; }        /* Default fallback */
+#sceneChart {
+  width: 100% !important;
+  height: 100% !important;
+}
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+    background-position: center top;
+  }
+}

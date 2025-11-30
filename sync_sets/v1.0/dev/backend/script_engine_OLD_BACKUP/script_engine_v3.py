@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""
+ToknNews Script Engine v3
+Persona-aware script generator.
+Handles:
+ - Chip intros (conditional)
+ - Primary anchor analysis
+ - Secondary anchor color commentary
+ - Chip closes (conditional)
+"""
+
+import json
+
+def chip_intro(enriched):
+    """
+    Generates Chip's intro line when chip_involved is True.
+    Placeholder for now — just a simple template.
+    """
+    headline = enriched.get("headline", "")
+    return f"Good evening, I'm Chip Blue. Our top story tonight: {headline}"
+
+
+def chip_outro(enriched):
+    """
+    Generates Chip's closing reaction/quips when chip_involved is True.
+    Uses chip_reaction/chip_quip placeholders for now.
+    """
+    reaction = enriched.get("chip_reaction") or ""
+    quip = enriched.get("chip_quip") or ""
+    return f"{reaction} {quip}".strip()
+
+def primary_section(enriched):
+    """
+    Generates the main analysis section for the primary character.
+    Placeholder version — will be replaced with persona-aware scripting.
+    """
+    primary = enriched.get("primary_character")
+    summary = enriched.get("summary", "")
+    if not primary:
+        return None
+    return f"{primary} reports: {summary}"
+
+def secondary_section(enriched):
+    """
+    Generates color / impact / alternative perspective from the secondary character.
+    Placeholder version — will become persona-aware later.
+    """
+    secondary = enriched.get("secondary_character")
+    summary = enriched.get("summary", "")
+    if not secondary:
+        return None
+    return f"{secondary} adds: {summary}"
+
+def generate_script(enriched):
+    """
+    enriched is the JSON from enrich v3:
+    {
+      "headline": ...,
+      "summary": ...,
+      "primary_character": ...,
+      "secondary_character": ... or None,
+      "chip_involved": true/false,
+      "chip_reaction": ...,
+      "chip_quip": ...,
+      ...
+    }
+    """
+
+    # Placeholder for now —
+    # We'll fill in the real logic next.
+    script = {
+        "chip_intro": chip_intro(enriched) if enriched.get("chip_involved") else None,
+        "primary_section": primary_section(enriched),
+        "secondary_section": secondary_section(enriched),
+        "chip_outro": chip_outro(enriched) if enriched.get("chip_involved") else None
+    }
+
+    return script

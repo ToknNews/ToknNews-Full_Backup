@@ -1,0 +1,14 @@
+# backend/script_engine/chip_reset/reset_transitions.py
+
+import random
+
+RESET_RETURN_LINES = [
+    "Alright — reset complete. Let’s get back into it.",
+    "Back to the desk — here’s where we pick things up.",
+    "Refocused and ready — let’s dive back into the story.",
+    "Good. Now let’s continue.",
+    "Alright, that gives us the lay of the land. Back to it."
+]
+
+def build_reset_return_line():
+    return random.choice(RESET_RETURN_LINES)

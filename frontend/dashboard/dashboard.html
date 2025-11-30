@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TOKN News Dashboard</title>
+<link rel="icon" type="image/png" href="/frontend/assets/favicon.png">
+<link rel="stylesheet" href="/css/tokn.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header>
+  <img class="logo" src="/Tokn_Logo_Main_4.png" alt="Tokn Logo">
+  <div id="menu-btn"><span></span><span></span><span></span></div>
+</header>
+
+<section>
+    <!-- === SYSTEM SUMMARY (Enhanced) === -->
+    <div id="system-summary" class="summary-grid">
+      <div class="summary-item">
+        <strong>Status</strong><br>
+        <span id="status" class="status-text">Loading...</span>
+      </div>
+
+      <div class="summary-item">
+        <strong>Cycle</strong><br>
+        <span id="cycle-health">--</span>
+      </div>
+
+      <div class="summary-item">
+        <strong>Velocity</strong><br>
+        <span id="velocity">--</span>
+      </div>
+
+      <div class="summary-item">
+        <strong>Feeds</strong><br>
+        <span id="sources">--</span>
+      </div>
+
+      <div class="summary-item">
+        <strong>Snapshot</strong><br>
+        <span id="snapshot">--</span>
+      </div>
+
+      <div class="summary-item">
+        <strong>Uptime</strong><br>
+        <span id="uptime">--</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+  </div>
+</section>
+
+<section>
+  <h2>Scene Activity</h2>
+  <div class="chart-toolbar">
+    <label for="range-select">Range:</label>
+    <select id="range-select">
+      <option value="7">Last 7 Days</option>
+      <option value="30">Last 30 Days</option>
+      <option value="60">Last 60 Days</option>
+      <option value="all">All Time</option>
+    </select>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="sceneChart"></canvas>
+  </div>
+</section>
+
+<section>
+  <h2>Scene Log</h2>
+  <div class="scene-log-container">
+    <table id="scene-log">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Headline</th>
+          <th>Sentiment</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody id="scene-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="overlay"></div>
+
+<!-- === Sliding Drawer Menu === -->
+<aside id="drawer">
+  <h3>📂 Investor Resources</h3>
+  <div class="drawer-buttons">
+    <a href="/docs/ToknNews_Overview.pdf" target="_blank" class="drawer-btn">📄 ToknNews Overview</a>
+    <a href="/docs/Investor_Roadmap.pdf" target="_blank" class="drawer-btn">🚀 Investor Roadmap</a>
+    <a href="/docs/Technical_Architecture.pdf" target="_blank" class="drawer-btn">⚙️ Technical Architecture</a>
+  </div>
+</aside>
+
+<footer>© 2025 TOKN News</footer>
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

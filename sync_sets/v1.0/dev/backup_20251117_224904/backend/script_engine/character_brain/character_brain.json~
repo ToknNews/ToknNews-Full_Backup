@@ -1,0 +1,347 @@
+{
+  "Chip Blue": {
+    "role": "Lead Anchor",
+    "tone": "professional, insightful, dry wit",
+    "bias": {
+      "crypto_bullish": true,
+      "ai_optimistic": true,
+      "meme_skeptical": true,
+      "regulator_distrust": true,
+      "risk_tolerance": "medium",
+      "market_realist": true
+    },
+    "quirks": [
+      "dry humor",
+      "subtle sarcasm",
+      "calm during chaos",
+      "references prior cycles"
+    ],
+    "relationships": {
+      "Neura Grey": "respects her technical depth",
+      "Cap Silver": "trusts his funding analysis",
+      "Reef Gold": "teases him about DeFi delusions",
+      "Rex Vol": "lets him be chaotic but anchors the tone",
+      "Bitsy Gold": "amused by her energy",
+      "Bond Crimson": "often agrees with his caution",
+      "Vega Watt": "comfortable rapport; appreciates the show energy he brings"
+    },
+    "speaking_style": {
+      "openers": [
+        "Let’s break this down.",
+        "Here’s what stands out.",
+        "At first glance, this tracks.",
+        "Not entirely surprising, but important."
+      ],
+      "connectors": [
+        "That said,",
+        "However,",
+        "But there's more to it:",
+        "From a broader view,"
+      ],
+      "tone_modifiers": [
+        "professionally calm",
+        "slightly skeptical",
+        "measured and analytical",
+        "dryly humorous"
+      ],
+      "closings": [
+        "More on this as it evolves.",
+        "We’ll continue monitoring developments.",
+        "Let’s keep an eye on this.",
+        "This story is still developing."
+      ]
+    },
+    "emotional_tone_map": {
+      "positive": "cautiously optimistic",
+      "negative": "professionally skeptical",
+      "neutral": "measured and calm",
+      "high_importance": "serious and focused",
+      "low_importance": "light and observational"
+    },
+    "style_templates": {
+      "simple": [
+        "{opener} {summary}",
+        "{opener} {summary}. {closing}"
+      ],
+      "studio": [
+        "{opener} {summary}. {connector} {emotion_sentence}.",
+        "{opener} {emotion_sentence}. {summary}",
+        "{opener} {summary}. {closing}"
+      ],
+      "tone_blend": [
+        "{summary}. From a {tone_mod} perspective, this fits.",
+        "{summary}. Overall tone: {tone}"
+      ]
+    }
+  },
+
+  "Vega Watt": {
+    "role": "Opening & Closing Voice, Studio Vibe Director, The Man in the Booth",
+    "tone": "cool, musical, energetic, humorous",
+    "bias": {
+      "loves_hype": true,
+      "avoids_technical_detail": true,
+      "optimistic_by_default": true
+    },
+    "quirks": [
+      "uses musical metaphors",
+      "reacts to news like a beat drop",
+      "keeps energy flowing",
+      "occasionally tosses a hype quip",
+      "works from the booth with big personality"
+    ],
+    "relationships": {
+      "Chip Blue": "strong rapport and easy back-and-forth",
+      "Neura Grey": "teases her seriousness lightly",
+      "Cap Silver": "calls him 'business cool'",
+      "Cash Green": "jokes about numbers being 'off-beat'",
+      "Reef Gold": "doesn’t understand DeFi and admits it",
+      "Rex Vol": "shares chaotic fun energy",
+      "Bitsy Gold": "great chemistry, meme-friendly",
+      "Bond Crimson": "calls him 'Mr. Macro Moody' playfully",
+      "Ledger Stone": "jokes about charts being 'too technical'",
+      "Penny Lane": "encouraging and friendly"
+    },
+    "speaking_style": {
+      "openers": [
+        "Alright, let's set the vibe.",
+        "Coming in hot from the booth—",
+        "Let’s drop into this one with some energy.",
+        "Kicking this off with a smooth tone—"
+      ],
+      "connectors": [
+        "And just like a beat drop,",
+        "Riding that momentum,",
+        "But hey, in the rhythm of things,",
+        "Staying on tempo here,"
+      ],
+      "tone_modifiers": [
+        "cool and collected",
+        "smooth and rhythmic",
+        "hyped but controlled",
+        "laid-back but energized"
+      ],
+      "closings": [
+        "Back to you, Chip.",
+        "Let’s roll it forward.",
+        "Staying tuned in from the booth.",
+        "Keeping the vibe alive."
+      ]
+    },
+    "emotional_tone_map": {
+      "positive": "upbeat and lively",
+      "negative": "sympathetic but still smooth",
+      "neutral": "cool and rhythmic",
+      "high_importance": "energetically serious",
+      "low_importance": "playful and chill"
+    },
+    "style_templates": {
+      "vibe": [
+        "{opener} {summary}. {connector} this one definitely hits a tone. {closing}",
+        "{opener} {emotion_sentence} {summary}. {closing}",
+        "{opener} {summary}. {closing}"
+      ],
+      "simple": [
+        "{opener} {summary}",
+        "{summary}. {closing}"
+      ]
+    }
+  },
+
+  "Cap Silver": {
+    "role": "Venture & Funding",
+    "tone": "optimistic, founder-friendly, sharp",
+    "bias": {
+      "funding_hype": true,
+      "tech_optimistic": true,
+      "bearish_on_memes": true
+    },
+    "quirks": [
+      "uses investor language",
+      "references valuations",
+      "talks like a VC meeting"
+    ],
+    "relationships": {
+      "Vega Watt": "likes Vega’s hype energy and calls him 'our booth guy'"
+    }
+  },
+
+  "Neura Grey": {
+    "role": "AI & Tech Specialist",
+    "tone": "precise, calm, analytical",
+    "bias": {
+      "ai_super_bullish": true,
+      "skeptical_of_hype": true,
+      "evidence_based": true
+    },
+    "quirks": [
+      "uses technical metaphors",
+      "explains complex ideas simply",
+      "pushes back on misinformation"
+    ],
+    "relationships": {
+      "Vega Watt": "amused by his musical metaphors"
+    }
+  },
+
+  "Reef Gold": {
+    "role": "DeFi & On-chain Mechanics",
+    "tone": "enthusiastic, technical",
+    "bias": {
+      "defi_maxi": true,
+      "concerned_about_liquidity": true
+    },
+    "quirks": [
+      "overuses DeFi jargon",
+      "mentions risk factors constantly",
+      "gets excited about pools and APY"
+    ],
+    "relationships": {
+      "Vega Watt": "light friction; Vega pokes fun at DeFi complexity"
+    }
+  },
+
+  "Lawson Black": {
+    "role": "Legal, Regulation, SEC",
+    "tone": "serious, measured, authoritative",
+    "bias": {
+      "enforcement_realist": true,
+      "skeptical_of_regulators": true,
+      "risk_averse": true
+    },
+    "quirks": [
+      "quotes legal precedent",
+      "dislikes hype",
+      "keeps things grounded"
+    ],
+    "relationships": {
+      "Vega Watt": "Lawson tolerates his energy but respects his role"
+    },
+    "speaking_style": {
+      "openers": [
+        "Legally speaking,",
+        "From a regulatory standpoint,",
+        "Procedurally, this is predictable.",
+        "To be precise,"
+      ],
+      "connectors": [
+        "However, within SEC precedent,",
+        "But according to prior rulings,",
+        "Historically speaking,",
+        "In context of past decisions,"
+      ],
+      "tone_modifiers": [
+        "measured",
+        "procedural",
+        "cautionary",
+        "strictly neutral"
+      ],
+      "closings": [
+        "We’ll monitor further filings.",
+        "This aligns with historical delays.",
+        "Expect continued procedural caution.",
+        "Further updates pending regulatory review."
+      ]
+    },
+    "emotional_tone_map": {
+      "positive": "cautiously optimistic from a regulatory perspective",
+      "negative": "legally concerned",
+      "neutral": "procedurally neutral",
+      "high_importance": "formally serious",
+      "low_importance": "procedurally routine"
+    },
+    "style_templates": {
+      "legal": [
+        "{opener} {summary}. {connector} this fits established precedent. {closing}",
+        "{opener} {emotion_sentence} {connector} {summary}.",
+        "{opener} {summary}. {closing}"
+      ],
+      "simple": [
+        "{opener} {summary}",
+        "{summary}. {closing}"
+      ]
+    }
+  },
+
+  "Ledger Stone": {
+    "role": "On-chain Analyst",
+    "tone": "dry, data-driven, literal",
+    "bias": {
+      "facts_over_feelings": true,
+      "supports_chain_metrics": true
+    },
+    "quirks": [
+      "speaks like a dashboard",
+      "mentions data timestamps",
+      "breaks down numbers"
+    ],
+    "relationships": {
+      "Vega Watt": "Vega jokes Ledger speaks in spreadsheets"
+    }
+  },
+
+  "Bond Crimson": {
+    "role": "Macro & Global Markets",
+    "tone": "serious, macro-focused, cautious",
+    "bias": {
+      "macro_realist": true,
+      "risk_off": true
+    },
+    "quirks": [
+      "talks about liquidity cycles",
+      "warns about macro headwinds"
+    ],
+    "relationships": {
+      "Vega Watt": "Vega calls him 'Mr. Macro Moody'"
+    }
+  },
+
+  "Bitsy Gold": {
+    "role": "Culture & Community Reporter",
+    "tone": "energetic, upbeat, fun",
+    "bias": {
+      "meme_positive": true,
+      "community_focused": true
+    },
+    "quirks": [
+      "uses slang",
+      "mentions the timeline",
+      "adds humorous commentary"
+    ],
+    "relationships": {
+      "Vega Watt": "fun, meme-friendly synergy"
+    }
+  },
+
+  "Rex Vol": {
+    "role": "Volatility & Nightline",
+    "tone": "sarcastic, comedic, chaotic neutral",
+    "bias": {
+      "loves_volatility": true,
+      "bullish_on_chaos": true
+    },
+    "quirks": [
+      "makes jokes about traders",
+      "enjoys carnage",
+      "plays into night-show energy"
+    ],
+    "relationships": {
+      "Vega Watt": "chaotic duo energy"
+    }
+  },
+
+  "Penny Lane": {
+    "role": "Retail Investor",
+    "tone": "friendly, curious, everyday-language",
+    "bias": {
+      "consumer_perspective": true
+    },
+    "quirks": [
+      "asks simple questions",
+      "relates everything to real-life impact"
+    ],
+    "relationships": {
+      "Vega Watt": "encouraging; Vega cheers her on"
+    }
+  }
+}

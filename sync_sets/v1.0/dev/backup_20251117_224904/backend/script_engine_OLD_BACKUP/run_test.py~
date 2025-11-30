@@ -1,0 +1,9 @@
+import json
+from script_engine_v3 import generate_script
+
+with open("test_payload.json", "r") as f:
+    enriched = json.load(f)
+
+script = generate_script(enriched)
+
+print(json.dumps(script, indent=2))

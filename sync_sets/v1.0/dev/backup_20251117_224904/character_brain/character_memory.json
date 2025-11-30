@@ -1,0 +1,29 @@
+{
+  "recent_headlines": [
+    "BTC liquidity crunch deepens",
+    "Whales increase BTC flows",
+    "BTC supply on exchanges tightens"
+  ],
+  "story_clusters": [
+    {
+      "domain": "markets",
+      "timestamp": "2025-11-17T03:47:00.515670"
+    }
+  ],
+  "bias_adjustments": {},
+  "last_updated": "2025-11-16T22:08:02.214175",
+  "recent_items": [
+    {
+      "headline": "BTC crashes 7% amid liquidation cascade",
+      "domain": "markets",
+      "timestamp": "2025-11-17T03:47:00.515670",
+      "weight": 1.0
+    }
+  ],
+  "domain_heatmap": {
+    "markets": {
+      "score": 0.1999999898125001,
+      "updated": "2025-11-17T03:47:00.515710"
+    }
+  }
+}

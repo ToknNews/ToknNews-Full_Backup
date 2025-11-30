@@ -1,0 +1,20 @@
+[
+  {
+    "name": "toknnews-rest",
+    "script": "/var/www/toknnews-live/backend/rest/run_rest.py",
+    "interpreter": "python3"
+  },
+  {
+    "name": "toknnews-cycle",
+    "script": "/var/www/toknnews-live/backend/rest/routes/ingest_v2/run_cycle.py",
+    "interpreter": "python3"
+  },
+  {
+    "name": "toknnews-broadcast",
+    "script": "broadcast/episode_loop.py",
+    "cwd": "/var/www/toknnews-live/backend",
+    "interpreter": "python3",
+    "autorestart": true,
+    "watch": false
+  }
+]

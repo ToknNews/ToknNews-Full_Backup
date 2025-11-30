@@ -1,0 +1,354 @@
+# backend/script_engine/toss_engine/toss_line_generator.py
+
+TONE_TEMPLATES = {
+    "positive": [
+        "Good news developing here — {anchor} has more.",
+        "{anchor} is tracking some encouraging movement on this.",
+        "A promising update — {anchor} has the details."
+    ],
+    "negative": [
+        "A concerning development — {anchor} is following this closely.",
+        "Not the best news — {anchor} breaks it down.",
+        "{anchor} has the latest on a story raising some eyebrows."
+    ],
+    "neutral": [
+        "Here’s what we know so far — {anchor} has more.",
+        "{anchor} walks us through the latest.",
+        "Let’s take a closer look — {anchor} has the breakdown."
+    ]
+}
+
+DAYPART_TEMPLATES = {
+    "morning": [
+        "Starting off this morning, {anchor} has more.",
+        "Here’s how we're kicking off the day — {anchor} breaks it down.",
+        "A morning update — {anchor} has the latest."
+    ],
+    "afternoon": [
+        "This afternoon, {anchor} has the read.",
+        "{anchor} walks us through the mid-day update.",
+        "A developing story this afternoon — {anchor} explains."
+    ],
+    "evening": [
+        "Tonight, {anchor} brings us the details.",
+        "A key update this evening — {anchor} breaks it down.",
+        "Here's where things stand tonight — {anchor} has more."
+    ],
+    "late_night": [
+        "Late tonight, {anchor} has more on this.",
+        "As the day winds down, {anchor} walks us through it.",
+        "A late-night development — {anchor} breaks it down."
+    ],
+    "breaking": [
+        "Breaking at this hour — {anchor} has the latest.",
+        "{anchor} is on this breaking story now.",
+        "We’re following this breaking development — {anchor} brings us inside."
+    ]
+}
+
+DOMAIN_TEMPLATES = {
+    "ai": [
+        "On the AI front, {anchor} has more.",
+        "{anchor} is following this one on the AI side.",
+        "Developments in AI today — {anchor} breaks it down."
+    ],
+    "venture": [
+        "In the funding world, {anchor} has the details.",
+        "Another big venture move — {anchor} explains.",
+        "{anchor} is tracking the latest in startup capital."
+    ],
+    "markets": [
+        "Turning to the markets, {anchor} has more.",
+        "{anchor} is keeping a close eye on the market reaction.",
+        "A shift in the markets — {anchor} has the read."
+    ],
+    "defi": [
+        "In the DeFi space, {anchor} walks us through it.",
+        "{anchor} has the latest from the decentralized finance world.",
+        "A DeFi move worth noting — {anchor} explains."
+    ],
+    "regulation": [
+        "In Washington, {anchor} is tracking this development.",
+        "{anchor} breaks down the regulatory side.",
+        "A policy angle here — {anchor} explains what it means."
+    ],
+    "security": [
+        "A new security concern tonight — {anchor} has more.",
+        "{anchor} is monitoring the security implications.",
+        "On the cyber front, {anchor} breaks it down."
+    ],
+    "culture": [
+        "In the digital culture scene, {anchor} has the story.",
+        "{anchor} follows this one from the creator side.",
+        "A culture moment — {anchor} has more."
+    ],
+}
+
+# Stage 4 persona templates
+CHIP_PERSONA_TEMPLATES = {
+    "positive": [
+        "Looking good. {base}",
+        "Momentum looks solid. {base}",
+        "Let’s keep this tight. {base}"
+    ],
+    "neutral": [
+        "Let’s break this one down. {base}",
+        "Straight to it. {base}",
+        "Here’s what we know. {base}"
+    ],
+    "negative": [
+        "Not ideal. {base}",
+        "This one’s a concern. {base}",
+        "Let’s keep an eye on this. {base}"
+    ]
+}
+
+# Stage 5 modulation templates
+CHIP_MODULATION = {
+    "skeptical": [
+        "Let’s keep expectations in check. {base}",
+        "I’m not entirely convinced. {base}",
+        "We’ve seen this movie before. {base}"
+    ],
+    "serious": [
+        "Let’s take this one seriously. {base}",
+        "This is important. {base}",
+        "We need to watch this closely. {base}"
+    ],
+    "hyped": [
+        "This could be big. {base}",
+        "Feels like something’s brewing here. {base}",
+        "Eyes on this one. {base}"
+    ],
+    "cautious": [
+        "Let’s tread carefully. {base}",
+        "A lot can go wrong here—{base}",
+        "We’ll need to see how this develops. {base}"
+    ],
+    "sarcastic": [
+        "Oh great, here we go again. {base}",
+        "Totally didn’t see *that* coming. {base}",
+        "Classic move. {base}"
+    ]
+}
+
+BREAKING_TEMPLATES = {
+    1: [
+        "Worth keeping an eye on this.",
+        "This could develop quickly.",
+        "A notable shift here."
+    ],
+    2: [
+        "This one matters.",
+        "A significant development is unfolding.",
+        "We need to pay close attention here."
+    ],
+    3: [
+        "Breaking news just in.",
+        "We’re following this right now.",
+        "This is developing as we speak."
+    ]
+}
+
+# Late-night sarcasm pool (Stage 5-D)
+LATE_NIGHT_SARCASM = [
+    "Alright, it’s officially too late for this.",
+    "This is what happens when you stay up watching charts.",
+    "At this hour? Really?",
+    "Should’ve gone to bed, but here we are.",
+    "If you’re still awake watching ToknNews… respect."
+   ]
+
+ANCHOR_TEMPLATES = {
+    "Neura Grey": [
+        "Neura, walk us through it.",
+        "Neura, break this down.",
+        "Your read on this, Neura?"
+    ],
+    "Cash Green": [
+        "Cash, what’s your read?",
+        "Cash, talk us through the move.",
+        "Cash, set the stage for us."
+    ],
+    "Reef Gold": [
+        "Reef, unpack this.",
+        "Reef, what's happening here?",
+        "Reef, give us the pulse."
+    ],
+    "Lawson Black": [
+        "Lawson, what are we looking at?",
+        "Lawson, help us understand the angle.",
+        "Lawson, walk us through the policy side."
+    ],
+    "Ivy Quinn": [
+        "Ivy, what stands out?",
+        "Ivy, walk us through the highlight.",
+        "Ivy, bring us inside the trend."
+    ],
+    "Bitsy Gold": [
+        "Bitsy, flag anything weird.",
+        "Bitsy, what are you seeing here?",
+        "Bitsy, drop us a quick pulse check."
+    ],
+    "Vega Watt": [
+        "Vega, set the vibe.",
+        "Vega, what's the energy on this?",
+        "Vega, give us a read before we dive in."
+    ]
+}
+
+def choose_chip_modulation(enriched, daypart):
+    sentiment = enriched.get("sentiment", "neutral")
+    importance = enriched.get("importance", 5)
+    domain = enriched.get("domain", "general")
+
+    # Breaking-news override (we handle more in stage 5-E)
+    if importance >= 9:
+        return "serious"
+
+    # Negative news → skeptical or serious
+    if sentiment == "negative":
+        if domain in ["regulation", "security"]:
+            return "serious"
+        return "skeptical"
+
+    # Positive news → hyped for major stories
+    if sentiment == "positive":
+        if importance >= 7:
+            return "hyped"
+
+    # Regulatory or SEC → cautious
+    if domain == "regulation":
+        return "cautious"
+
+    # Late night mode → light sarcasm
+    if daypart == "late_night":
+        return "sarcastic"
+
+    # Default → none (use base toss)
+    return None
+
+def build_chip_toss(enriched: dict) -> str:
+    """
+    Stage 1:
+    Minimal Chip toss line generator.
+
+    Inputs:
+      - enriched["primary_character"]
+      - enriched["headline"] or enriched["topic"]
+      - enriched["sentiment"]
+
+    Output:
+      A short, natural toss line Chip delivers before the anchor speaks.
+    """
+
+    anchor = enriched.get("primary_character", "our correspondent")
+    topic  = enriched.get("headline") or enriched.get("topic") or ""
+    sentiment = enriched.get("sentiment", "neutral")
+
+    import random
+
+    # Pick a tone template based on sentiment
+    tone_pool = TONE_TEMPLATES.get(sentiment, TONE_TEMPLATES["neutral"])
+    tone_line = random.choice(tone_pool)
+    tone_line = tone_line.format(anchor=anchor)
+
+    # === UNIVERSAL IMPORT FOR time_logic.py ===
+    import os, sys, importlib.util
+
+    time_logic_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),  # /script_engine
+        "time_logic.py"
+    )
+
+    spec = importlib.util.spec_from_file_location("time_logic", time_logic_path)
+    time_logic = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(time_logic)
+
+    get_broadcast_time_info = time_logic.get_broadcast_time_info
+
+    # Now use the function
+    ti = get_broadcast_time_info()
+    daypart = ti.get("daypart", "evening")
+
+    # Daypart-aware variation (30% chance)
+    if random.random() < 0.30:
+        dp_pool = DAYPART_TEMPLATES.get(daypart)
+        if dp_pool:
+            dp_line = random.choice(dp_pool).format(anchor=anchor)
+        else:
+            dp_line = None
+    else:
+        dp_line = None
+
+    # Domain-aware framing
+    domain = enriched.get("domain", "general").lower()
+    domain_pool = DOMAIN_TEMPLATES.get(domain)
+
+    if domain_pool:
+        domain_line = random.choice(domain_pool).format(anchor=anchor)
+    else:
+        domain_line = tone_line  # fallback to sentiment tone
+
+    # Anchor identity line (short-form)
+    anchor_pool = ANCHOR_TEMPLATES.get(anchor)
+    if anchor_pool:
+        anchor_line = random.choice(anchor_pool)
+    else:
+        anchor_line = f"{anchor} has the latest."
+
+    # Blend domain framing + anchor identity
+    # 75% of the time we use domain first, otherwise short casual toss
+    if random.random() < 0.75:
+        base_line = f"{domain_line} {anchor_line} \"{topic}\"."
+    else:
+        base_line = f"{anchor_line} \"{topic}\"."
+
+    # === Stage 5: Chip modulation (skeptical, hyped, cautious, etc.) ===
+    modulation = choose_chip_modulation(enriched, daypart)
+
+    if modulation in CHIP_MODULATION:
+        # Apply modulation only sometimes (40% chance)
+        if random.random() < 0.40:
+            mod_pool = CHIP_MODULATION[modulation]
+            wrapper = random.choice(mod_pool)
+            base_line = wrapper.format(base=base_line)
+
+    # === Stage 5-D: Late-night sarcasm injection (Chip-only) ===
+    if daypart == "late_night":
+        # 25% chance Chip adds an extra sarcastic tag line
+        import random
+        if random.random() < 0.25:
+            snark = random.choice(LATE_NIGHT_SARCASM)
+            base_line = f"{base_line}  {snark}"
+
+    # === Stage 5-E: Breaking Tone Override ===
+    escalation = enriched.get("escalation_level")
+
+    # If not provided by enriched payload, try to fetch from PD
+    if escalation is None:
+        try:
+            from director.director_brain import ProgrammingDirector
+            escalation = ProgrammingDirector().state.escalation_level
+        except:
+            escalation = 0
+
+    breaking_line = choose_breaking_overlay(escalation)
+    if breaking_line:
+        base_line = f"{breaking_line} {base_line}"
+
+    # === Chip personality overlay (Stage 4 — existing logic) ===
+    importance = enriched.get("importance", 5)
+    persona_key = sentiment if sentiment in CHIP_PERSONA_TEMPLATES else "neutral"
+
+    # Only apply personality sometimes, and avoid on very serious stories
+    apply_persona = (importance < 8) and (random.random() < 0.35)
+
+    if apply_persona:
+        persona_pool = CHIP_PERSONA_TEMPLATES[persona_key]
+        wrapper = random.choice(persona_pool)
+        line = wrapper.format(base=base_line)
+    else:
+        line = base_line
+
+    return line

@@ -1,0 +1,8 @@
+#chip-mini{cursor:pointer}
+#chip-mini:hover{transform:scale(1.1) rotate(8deg);}
+@keyframes chipWalk{0%{transform:translateX(0)}100%{transform:translateX(-60vw)}}
+canvas{display:block;margin:auto}
+@media(max-width:768px){
+  canvas{max-width:90%;height:auto}
+  footer{font-size:.75rem}
+}

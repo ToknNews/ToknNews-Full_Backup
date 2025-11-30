@@ -1,0 +1,15 @@
+{
+  "cycle_index": 0,
+  "last_anchor_used": "chip",
+  "anchor_fatigue": {
+    "chip": 1533
+  },
+  "theme_memory": [],
+  "last_segment_type": "anchor_analysis",
+  "volatility_level": 0.0,
+  "social_heat": 0.0,
+  "breaking_active": false,
+  "bitsy_last_used": -999,
+  "vega_last_used": -999,
+  "chip_reset_last": -999
+}

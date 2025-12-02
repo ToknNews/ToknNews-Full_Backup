@@ -1,0 +1,12 @@
+{
+  "eth": [
+    "0xabc123abc123abc123abc123abc123abc123abc1"
+  ],
+  "bsc": [
+    "0xabc456abc456abc456abc456abc456abc456abc4"
+  ],
+  "polygon": [
+    "0xabc789abc789abc789abc789abc789abc789abc7"
+  ]
+}
+

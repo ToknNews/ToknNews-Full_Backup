@@ -1,0 +1,242 @@
+[
+  {
+    "speaker": "VEGA",
+    "text": "You're watching Token News.",
+    "tag": "vega_intro",
+    "timestamp": 1764540807.6115375
+  },
+  {
+    "speaker": "CHIP",
+    "text": "Good evening, welcome to Token News.",
+    "tag": "chip_intro",
+    "timestamp": 1764540807.611539
+  },
+  {
+    "speaker": "CHIP",
+    "text": "Here\u2019s what\u2019s ahead:\n\u2022 Here\u2019s what happened in crypto today\n\u2022 Telegram's Pavel Durov\n\u2022 Tether CEO slams S&P ratings agency and influencers spreading USDt FUD\n\u2022 Most Ethereum valuation models indicate ETH is undervalued\n\u2022 Fed rate-cut bets surge\n\u2022 Bitcoin 2022 bear market correlation hits 98% as ETFs add $220M",
+    "tag": "chip_rundown",
+    "timestamp": 1764540807.6115565
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BITSY, Here\u2019s what happened in crypto today \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764540807.6115675
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "open",
+    "timestamp": 1764540807.6116576
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "challenge",
+    "timestamp": 1764540807.6117175
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "defense",
+    "timestamp": 1764540807.6117928
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764540807.6118736
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Telegram's Pavel Durov, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764540807.6119485
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BITSY, Telegram's Pavel Durov \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764540807.6119556
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "open",
+    "timestamp": 1764540807.6120148
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "challenge",
+    "timestamp": 1764540807.6120617
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "defense",
+    "timestamp": 1764540807.6121187
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764540807.6121805
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Tether CEO slams S&P ratings agency and influencers spreading USDt FUD, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764540807.61225
+  },
+  {
+    "speaker": "CHIP",
+    "text": "REX VOL, Tether CEO slams S&P ratings agency and influencers spreading USDt FUD \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764540807.6122572
+  },
+  {
+    "speaker": "REX VOL",
+    "text": "[REX VOL: no key]",
+    "tag": "open",
+    "timestamp": 1764540807.6123183
+  },
+  {
+    "speaker": "IVY",
+    "text": "[IVY: no key]",
+    "tag": "challenge",
+    "timestamp": 1764540807.612369
+  },
+  {
+    "speaker": "REX VOL",
+    "text": "[REX VOL: no key]",
+    "tag": "defense",
+    "timestamp": 1764540807.612426
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764540807.6124747
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Most Ethereum valuation models indicate ETH is undervalued, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764540807.6125202
+  },
+  {
+    "speaker": "CHIP",
+    "text": "LEDGER, Most Ethereum valuation models indicate ETH is undervalued \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764540807.6125262
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "open",
+    "timestamp": 1764540807.61257
+  },
+  {
+    "speaker": "REEF",
+    "text": "[REEF: no key]",
+    "tag": "challenge",
+    "timestamp": 1764540807.6126142
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "defense",
+    "timestamp": 1764540807.6126852
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764540807.6127279
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Fed rate-cut bets surge, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764540807.6127882
+  },
+  {
+    "speaker": "CHIP",
+    "text": "REEF, Fed rate-cut bets surge \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764540807.6127942
+  },
+  {
+    "speaker": "REEF",
+    "text": "[REEF: no key]",
+    "tag": "open",
+    "timestamp": 1764540807.612848
+  },
+  {
+    "speaker": "CASH",
+    "text": "[CASH: no key]",
+    "tag": "challenge",
+    "timestamp": 1764540807.6128983
+  },
+  {
+    "speaker": "REEF",
+    "text": "[REEF: no key]",
+    "tag": "defense",
+    "timestamp": 1764540807.6129463
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764540807.6129885
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Bitcoin 2022 bear market correlation hits 98% as ETFs add $220M, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764540807.613036
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BOND, Bitcoin 2022 bear market correlation hits 98% as ETFs add $220M \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764540807.6130414
+  },
+  {
+    "speaker": "BOND",
+    "text": "[BOND: no key]",
+    "tag": "open",
+    "timestamp": 1764540807.6130877
+  },
+  {
+    "speaker": "CASH",
+    "text": "[CASH: no key]",
+    "tag": "challenge",
+    "timestamp": 1764540807.6131303
+  },
+  {
+    "speaker": "BOND",
+    "text": "[BOND: no key]",
+    "tag": "defense",
+    "timestamp": 1764540807.6131718
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764540807.6132123
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] the wrap-up, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764540807.6132555
+  },
+  {
+    "speaker": "CHIP",
+    "text": "Thanks everyone \u2014 that\u2019s Token News. We'll see you next cycle.",
+    "tag": "outro",
+    "timestamp": 1764540807.613257
+  }
+]

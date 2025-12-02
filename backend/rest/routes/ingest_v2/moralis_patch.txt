@@ -1,0 +1,15 @@
+# Moralis prices (fixed endpoint)
+if MORALIS_KEY:
+    data = safe_get(
+        "https://deep-index.moralis.io/api/v2/erc20/prices?chain=eth",
+        {"X-API-Key": MORALIS_KEY}
+    )
+    debug_api("Moralis", data)
+    if data and isinstance(data, list):
+        for t in data[:6]:
+            symbol = t.get("symbol", "???")
+            price = t.get("usdPrice", 0)
+            stories.append({
+                "headline": f"{symbol} price: ${price:,.2f} (Moralis)",
+                "source": "Moralis"
+            })

@@ -1,0 +1,12 @@
+# CryptoPanic (updated params)
+if CRYPTOPANIC_KEY:
+    data = safe_get(
+        f"https://cryptopanic.com/api/v1/posts/?auth_token={CRYPTOPANIC_KEY}&kind=news"
+    )
+    debug_api("CryptoPanic", data)
+    if data and "results" in data:
+        for p in data["results"][:10]:
+            stories.append({
+                "headline": p["title"],
+                "source": "CryptoPanic"
+            })

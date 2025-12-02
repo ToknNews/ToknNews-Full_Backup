@@ -1,0 +1,9 @@
+{
+  "summary": [
+    "[coindesk] {\"source\": \"CoinDesk\", \"fetched_at\": \"2025-12-01T16:00:02.563259Z\", \"articles\": [{\"title\": \"Digital Asset Treasuries Lead Crypto Stock Sell-Off as Bitcoin Falls to $84K\", \"url\": \"https://www.coindesk.",
+    "[market_intel] {\"type\": \"token_price\", \"chain\": \"eth\", \"address\": \"0x6B175474E89094C44Da98b954EedeAC495271d0F\", \"data\": {\"tokenName\": \"Dai Stablecoin\", \"tokenSymbol\": \"DAI\", \"tokenLogo\": \"https://logo.moralis.io/0x1",
+    "[market_intel] {\"type\": \"nft_floor\", \"chain\": \"eth\", \"contract_type\": \"nft721\", \"address\": \"0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB\", \"data\": {\"message\": \"No sale in this period\"}}",
+    "[market_intel] {\"type\": \"nft_floor\", \"chain\": \"eth\", \"contract_type\": \"nft1155\", \"address\": \"0x495f947276749Ce646f68AC8c248420045cb7b5e\", \"data\": {\"last_sale\": {\"transaction_hash\": \"0x0a7ba9ebe0534c30071dde70e688e3f"
+  ],
+  "generated_at": "2025-12-01T17:09:35.026592"
+}

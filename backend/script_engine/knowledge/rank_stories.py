@@ -2,16 +2,10 @@
 """
 TOKNNews — Story Ranking Engine (Editorial Layer)
 Ranks raw enriched stories into a production-ready stack.
-
-Inputs:
- - list of enriched story dicts (headline, summary, importance, sentiment, domain, ts)
-Outputs:
- - sorted list with attached `rank_score`
 """
 
 import time
 
-# Domain priorities (Chip + PD combined weighting)
 DOMAIN_WEIGHTS = {
     "breaking": 12,
     "macro": 10,
@@ -27,47 +21,39 @@ DOMAIN_WEIGHTS = {
     "general": 2
 }
 
-# Sentiment weighting
 SENTIMENT_WEIGHTS = {
     "Positive": 3,
     "Negative": 5,
     "Neutral": 1
 }
 
-
 def score_story(story):
     now = time.time()
+    hours_old = (now - story.get("timestamp", now - 3600)) / 3600
+    recency = max(0, min(10, 10 - hours_old))
 
-    # Recency score (0–10)
-    hours_old = (now - story.get("timestamp", now - 3600)) / 3600  # fallback to 1h old
-    recency = max(0, 10 - hours_old)
+    domain = story.get("domain", "general").lower()
+    sent = story.get("sentiment", "Neutral").capitalize()
+    importance_score = float(story.get("importance", 1)) * 2.0
 
-    # Domain score
-    domain = story.get("domain", "general")
-    domain_score = DOMAIN_WEIGHTS.get(domain.lower(), 2)
-
-    # Sentiment volatility score
-    sent = story.get("sentiment", "Neutral")
+    domain_score = DOMAIN_WEIGHTS.get(domain, 2)
     sentiment_score = SENTIMENT_WEIGHTS.get(sent, 1)
 
-    # Importance
-    importance_score = story.get("importance", 1) * 2.5
+    if domain == "breaking" and hours_old < 2:
+        domain_score += 3
 
-    # Final weighted score
     rank_score = (
         importance_score +
         recency * 1.5 +
         domain_score * 2 +
         sentiment_score
     )
-
     return rank_score
-
 
 def rank_stories(stories):
     ranked = []
     for s in stories:
-        s2 = dict(s)  # copy to avoid mutating
+        s2 = dict(s)
         s2["rank_score"] = score_story(s)
         ranked.append(s2)
 

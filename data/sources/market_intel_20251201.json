@@ -1,0 +1,113 @@
+[
+  {
+    "type": "token_price",
+    "chain": "eth",
+    "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "data": {
+      "tokenName": "Dai Stablecoin",
+      "tokenSymbol": "DAI",
+      "tokenLogo": "https://logo.moralis.io/0x1_0x6b175474e89094c44da98b954eedeac495271d0f_204eb3fa61c24996a80df7ae5ab61714.png",
+      "tokenDecimals": "18",
+      "nativePrice": {
+        "value": "364382711821529.55",
+        "decimals": 18,
+        "name": "Ether",
+        "symbol": "ETH",
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      },
+      "usdPrice": 1,
+      "usdPriceFormatted": "1",
+      "exchangeName": "Uniswap v3",
+      "exchangeAddress": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+      "tokenAddress": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "priceLastChangedAtBlock": "23919673",
+      "blockTimestamp": "1764604691000",
+      "possibleSpam": false,
+      "verifiedContract": true,
+      "pairAddress": "0x60594a405d53811d3bc4766596efd80fd545a270",
+      "pairTotalLiquidityUsd": "1767292.68",
+      "securityScore": 95,
+      "usdPrice24hr": 1,
+      "usdPrice24hrUsdChange": 0,
+      "usdPrice24hrPercentChange": 0,
+      "24hrPercentChange": "0"
+    }
+  },
+  {
+    "type": "nft_floor",
+    "chain": "eth",
+    "contract_type": "nft721",
+    "address": "0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
+    "data": {
+      "message": "No sale in this period"
+    }
+  },
+  {
+    "type": "nft_floor",
+    "chain": "eth",
+    "contract_type": "nft1155",
+    "address": "0x495f947276749Ce646f68AC8c248420045cb7b5e",
+    "data": {
+      "last_sale": {
+        "transaction_hash": "0x0a7ba9ebe0534c30071dde70e688e3fa294ea0db62e2fbcd3a7f1b667fae6a85",
+        "block_timestamp": "2025-12-01T13:54:35.000Z",
+        "buyer_address": "0x4a1c78fcc97d66151b6f7637cc8dcd6648e2e526",
+        "seller_address": "0xeab8fa7060dfeccf5fcbce30e2e4fc1cc44fda63",
+        "price": "10000000000000",
+        "price_formatted": "0.00001",
+        "usd_price_at_sale": "0.03",
+        "current_usd_value": "0.03",
+        "token_id": "66522811891349881440107801046746889443575080597061631294535586512750189215745",
+        "payment_token": {
+          "token_name": "Ether",
+          "token_symbol": "ETH",
+          "token_logo": "https://cdn.moralis.io/eth/0x.png",
+          "token_decimals": "18",
+          "token_address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "lowest_sale": {
+        "transaction_hash": "0x0a7ba9ebe0534c30071dde70e688e3fa294ea0db62e2fbcd3a7f1b667fae6a85",
+        "block_timestamp": "2025-12-01T13:54:35.000Z",
+        "buyer_address": "0x4a1c78fcc97d66151b6f7637cc8dcd6648e2e526",
+        "seller_address": "0xeab8fa7060dfeccf5fcbce30e2e4fc1cc44fda63",
+        "price": "10000000000000",
+        "price_formatted": "0.00001",
+        "usd_price_at_sale": "0.03",
+        "current_usd_value": "0.03",
+        "token_id": "66522811891349881440107801046746889443575080597061631294535586512750189215745",
+        "payment_token": {
+          "token_name": "Ether",
+          "token_symbol": "ETH",
+          "token_logo": "https://cdn.moralis.io/eth/0x.png",
+          "token_decimals": "18",
+          "token_address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "highest_sale": {
+        "transaction_hash": "0xdfe78603aa3bb31e72c310f17140d16b11ca188eb2c8f1cd33ba5c9fe7c9624e",
+        "block_timestamp": "2025-11-25T22:59:35.000Z",
+        "buyer_address": "0xac74491480c6bb30c26627c6cbae8a2b5952da54",
+        "seller_address": "0x7a632e0dc7eae936cb1e9ce178b25138252f315f",
+        "price": "30000000000000000",
+        "price_formatted": "0.03",
+        "usd_price_at_sale": "93.88",
+        "current_usd_value": "82.31",
+        "token_id": "25899807523749292536534919019903987378449899875964351392561054330516657930241",
+        "payment_token": {
+          "token_name": "Ether",
+          "token_symbol": "ETH",
+          "token_logo": "https://cdn.moralis.io/eth/0x.png",
+          "token_decimals": "18",
+          "token_address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "average_sale": {
+        "price": "3708233940242567",
+        "price_formatted": "0.003708233940242567",
+        "current_usd_value": "10.17"
+      },
+      "total_trades": 51
+    }
+  }
+]

@@ -37,12 +37,12 @@ def load_secrets():
 
 
 def _env():
-    """ENV fallback."""
     return {
         "marketaux_api_key": os.getenv("MARKETAUX_API_KEY", ""),
         "newsdata_api_key": os.getenv("NEWSDATA_API_KEY", ""),
         "cryptopanic_key": os.getenv("CRYPTOPANIC_KEY", ""),
         "moralis_api_key": os.getenv("MORALIS_API_KEY", ""),
-        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
+        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),  # ← keep this line
         "rpc_mainnet": os.getenv("RPC_MAINNET", "https://eth.llamarpc.com"),
+        "coindesk_api_key": os.getenv("COINDESK_API_KEY", "")
     }

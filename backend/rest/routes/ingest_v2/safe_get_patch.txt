@@ -1,0 +1,14 @@
+def safe_get(url, headers=None):
+    try:
+        r = requests.get(url, headers=headers or {}, timeout=15)
+
+        # Try to parse JSON no matter what headers say
+        try:
+            return r.json()
+        except:
+            pass
+
+        # If JSON parsing failed, return None (ignore bad responses)
+        return None
+    except:
+        return None

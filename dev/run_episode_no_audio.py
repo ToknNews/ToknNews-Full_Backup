@@ -1,46 +1,17 @@
 #!/usr/bin/env python3
-"""
-Script-only ToknNews episode test.
-No audio rendering.
-No ElevenLabs calls.
-Just prints the full show script in order.
-"""
 
-import json
-from script_engine.knowledge.episode_builder import build_episode
-from script_engine.persona.timeline_builder import build_timeline
+import argparse
+from backend.script_engine.episode_runner import run_episode
 
-print("\n=========== TOKNNEWS — EPISODE SCRIPT TEST (NO AUDIO) ===========\n")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Tokn Episode CLI")
+    parser.add_argument("--episode-id", type=str, required=True, help="Episode ID for tracking")
+    parser.add_argument("--max-headlines", type=int, default=25, help="Max headlines to ingest")
+    parser.add_argument("--skip-ingest", action="store_true", help="Skip news ingest step")
+    args = parser.parse_args()
 
-episode = build_episode()
+    if not args.skip_ingest:
+        from backend.rest.routes.ingest_v2.run_cycle import ingest_news_cycle
+        ingest_news_cycle(max_headlines=args.max_headlines)
 
-if "error" in episode:
-    print("ERROR: No stories available.")
-    exit(1)
-
-story_clusters = episode["rundown"]
-episode_id = episode["episode_id"]
-
-print(f"Episode ID: {episode_id}")
-print(f"Stories in Rundown: {len(story_clusters)}\n")
-
-
-# Build timeline
-timeline = build_timeline(
-    story_clusters,
-    daypart="evening",
-    show_mode="NEWS"
-)
-
-blocks = timeline["blocks"]
-
-# Pretty print the full script
-for i, block in enumerate(blocks):
-    speaker = block["speaker"].upper()
-    tag = block.get("tag", "line")
-    text = block["text"]
-
-    print(f"\n--- BLOCK {i} | {speaker} | {tag} ---")
-    print(text)
-
-print("\n=========== END OF SCRIPT ===========\n")
+    run_episode(episode_id=args.episode_id)

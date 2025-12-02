@@ -1,0 +1,242 @@
+[
+  {
+    "speaker": "VEGA",
+    "text": "You're watching Token News.",
+    "tag": "vega_intro",
+    "timestamp": 1764541000.8329093
+  },
+  {
+    "speaker": "CHIP",
+    "text": "Good evening, welcome to Token News.",
+    "tag": "chip_intro",
+    "timestamp": 1764541000.8329108
+  },
+  {
+    "speaker": "CHIP",
+    "text": "Here\u2019s what\u2019s ahead:\n\u2022 Here\u2019s what happened in crypto today\n\u2022 Telegram's Pavel Durov\n\u2022 Tether CEO slams S&P ratings agency and influencers spreading USDt FUD\n\u2022 Most Ethereum valuation models indicate ETH is undervalued\n\u2022 Fed rate-cut bets surge\n\u2022 Bitcoin 2022 bear market correlation hits 98% as ETFs add $220M",
+    "tag": "chip_rundown",
+    "timestamp": 1764541000.8329296
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BITSY, Here\u2019s what happened in crypto today \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764541000.8329406
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "open",
+    "timestamp": 1764541000.832951
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "challenge",
+    "timestamp": 1764541000.8329537
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "defense",
+    "timestamp": 1764541000.8329556
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764541000.8329577
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Telegram's Pavel Durov, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764541000.8329616
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BITSY, Telegram's Pavel Durov \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764541000.8329723
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "open",
+    "timestamp": 1764541000.8329747
+  },
+  {
+    "speaker": "IVY",
+    "text": "[IVY: no key]",
+    "tag": "challenge",
+    "timestamp": 1764541000.8329766
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "defense",
+    "timestamp": 1764541000.8329782
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764541000.8329797
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Tether CEO slams S&P ratings agency and influencers spreading USDt FUD, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764541000.8329823
+  },
+  {
+    "speaker": "CHIP",
+    "text": "LEDGER, Tether CEO slams S&P ratings agency and influencers spreading USDt FUD \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764541000.832985
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "open",
+    "timestamp": 1764541000.8329866
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "challenge",
+    "timestamp": 1764541000.8329885
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "defense",
+    "timestamp": 1764541000.8329897
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764541000.8329916
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Most Ethereum valuation models indicate ETH is undervalued, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764541000.8329937
+  },
+  {
+    "speaker": "CHIP",
+    "text": "REEF, Most Ethereum valuation models indicate ETH is undervalued \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764541000.8329961
+  },
+  {
+    "speaker": "REEF",
+    "text": "[REEF: no key]",
+    "tag": "open",
+    "timestamp": 1764541000.8329976
+  },
+  {
+    "speaker": "CASH",
+    "text": "[CASH: no key]",
+    "tag": "challenge",
+    "timestamp": 1764541000.8329992
+  },
+  {
+    "speaker": "REEF",
+    "text": "[REEF: no key]",
+    "tag": "defense",
+    "timestamp": 1764541000.8330007
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764541000.8330023
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Fed rate-cut bets surge, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764541000.8330045
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BOND, Fed rate-cut bets surge \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764541000.8330066
+  },
+  {
+    "speaker": "BOND",
+    "text": "[BOND: no key]",
+    "tag": "open",
+    "timestamp": 1764541000.8330083
+  },
+  {
+    "speaker": "LEDGER",
+    "text": "[LEDGER: no key]",
+    "tag": "challenge",
+    "timestamp": 1764541000.83301
+  },
+  {
+    "speaker": "BOND",
+    "text": "[BOND: no key]",
+    "tag": "defense",
+    "timestamp": 1764541000.8330114
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764541000.833013
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] Bitcoin 2022 bear market correlation hits 98% as ETFs add $220M, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764541000.833015
+  },
+  {
+    "speaker": "CHIP",
+    "text": "BOND, Bitcoin 2022 bear market correlation hits 98% as ETFs add $220M \u2014 your read?",
+    "tag": "toss",
+    "timestamp": 1764541000.833018
+  },
+  {
+    "speaker": "BOND",
+    "text": "[BOND: no key]",
+    "tag": "open",
+    "timestamp": 1764541000.833021
+  },
+  {
+    "speaker": "REEF",
+    "text": "[REEF: no key]",
+    "tag": "challenge",
+    "timestamp": 1764541000.8330238
+  },
+  {
+    "speaker": "BOND",
+    "text": "[BOND: no key]",
+    "tag": "defense",
+    "timestamp": 1764541000.8330266
+  },
+  {
+    "speaker": "BITSY",
+    "text": "[BITSY: no key]",
+    "tag": "chaos",
+    "timestamp": 1764541000.8330293
+  },
+  {
+    "speaker": "CHIP",
+    "text": "[CHIP: no key] the wrap-up, you're up.",
+    "tag": "wrap",
+    "timestamp": 1764541000.8330328
+  },
+  {
+    "speaker": "CHIP",
+    "text": "Thanks everyone \u2014 that\u2019s Token News. We'll see you next cycle.",
+    "tag": "outro",
+    "timestamp": 1764541000.8330338
+  }
+]

@@ -23,3 +23,4 @@ data/rolling_stories.json
 logs/
 __pycache__/
 *.pyc
+.env

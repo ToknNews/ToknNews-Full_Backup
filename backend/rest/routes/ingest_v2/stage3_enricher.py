@@ -11,20 +11,30 @@ DUNE_KEY = os.getenv("DUNE_API_KEY")
 BIRDEYE_KEY = os.getenv("BIRDEYE_API_KEY")
 MORALIS_KEY = os.getenv("MORALIS_API_KEY")
 
-def safe_get(url, headers=None, params=None, timeout=12):
+def safe_get(url, headers=None, params=None, timeout=4):
     try:
-        r = requests.get(url, headers=headers or {}, params=params or {}, timeout=timeout)
-        if r.status_code in [429, 500, 502, 503, 504]:
-            logger.warning(f"Rate limited: {url} — skipping")
+        r = requests.get(
+            url,
+            headers=headers or {},
+            params=params or {},
+            timeout=timeout
+        )
+        if r.status_code >= 400:
+            logger.warning(f"[Stage3] {r.status_code} at {url}")
             return None
-        r.raise_for_status()
         return r.json()
     except Exception as e:
-        logger.error(f"API failed {url}: {e}")
+        logger.warning(f"[Stage3] Skipping {url}: {e}")
         return None
 
 def enrich_stage3(story):
     context = {}
+
+    # 1. DexScreener trending (memecoin fire)
+    data = safe_get("https://api.dexscreener.com/latest/dex/tokens/trending")
+    if data and isinstance(data, list):
+        context["dexscreener"] = data[:6]
+
 
     # 1. DexScreener trending (memecoin fire)
     data = safe_get("https://api.dexscreener.com/latest/dex/tokens/trending")

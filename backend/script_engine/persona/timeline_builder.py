@@ -1,161 +1,237 @@
 #!/usr/bin/env python3
 """
-timeline_builder.py
-TOKEN NEWS — PHASE 2 (Post-writer Purge)
+timeline_builder_v3.py
+TOKEN NEWS — Full Episode Timeline Builder (2025, PDv3 Architecture)
 
 Responsibilities:
- - Build full AI-generated episode timeline
- - Enforce structure: Vega → Chip → Rundown → Stories → Outro
- - Maintain conversational continuity using scene_state
- - Activate duo exchanges on high-heat domains only
+ - Execute PDv3 format decisions
+ - Apply dynamic rundown
+ - Call GPT conversation engine
+ - Honor runtime targets
+ - Integrate Ad Engine (ads disabled by default)
+ - Maintain scene_state for continuity
+ - Ensure correct anchor roles (primary / secondary / tertiary)
+ - Keep Vega booth-only
 """
 
 import time
-from backend.script_engine.director.pd_controller import run_pd
+import datetime
+
+from backend.script_engine.director.pd_engine_v3 import pd_decide_format
+from backend.script_engine.dynamic_rundown import generate_rundown
+from backend.script_engine.ad_engine import maybe_insert_ad
+from backend.script_engine.runtime_estimator import estimate_block_runtime
 from backend.script_engine.grok_writer import write_block_conversation
 
-# ============================================================
-# Constants
-# ============================================================
 
-HIGH_HEAT_DOMAINS = {"macro", "markets", "regulation", "defi", "onchain", "ai"}
-
-def should_enable_duo(domain: str) -> bool:
-    return domain in HIGH_HEAT_DOMAINS
+# ============================================================
+# HELPERS
+# ============================================================
 
 def _block(text, speaker, tag):
     return {
-        "speaker": speaker,
+        "speaker": speaker.lower(),
         "text": text,
         "tag": tag,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
+
 
 def _audio_block(text, speaker, tag, voice_map):
+    vmap = voice_map or {}
     return {
-        "speaker": speaker,
-        "voice_id": voice_map.get(speaker, voice_map.get("chip", "")),
+        "speaker": speaker.lower(),
+        "voice_id": vmap.get(speaker.lower(), vmap.get("chip", "")),
         "text": text,
         "block_type": tag,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
 
-def make_micro_headline(headline: str) -> str:
-    words = headline.split()
-    if len(words) <= 12:
-        return headline
-    return " ".join(words[:12]) + "…"
 
 # ============================================================
-# Primary Entry Point (matches CLI expectations)
+# MAIN ENTRY POINT
 # ============================================================
 
-def build_timeline(story_clusters, voice_map, daypart):
+def build_timeline(story_clusters, *, daypart="evening", show_mode="NEWS", voice_map=None):
+    """
+    Returns:
+    {
+        "blocks": [...],
+        "audio_blocks": [...],
+        "pd_context": {...},
+        "estimated_runtime_sec": X
+    }
+    """
+
     timeline = []
     audio = []
+
+    # ========================================================
+    # 1. PD FORMAT DECISION
+    # ========================================================
+    pd_context = pd_decide_format(story_clusters)
+    fmt = pd_context["format"]
+    target_runtime = pd_context["target_runtime_sec"]
+
+    # Keep a running estimated runtime
+    estimated_runtime_sec = 0
+
+    # Scene state (passed into GPT conv engine)
     scene_state = {
         "block_index": 0,
         "previous_line": None,
-        "segment_type": "intro"
+        "segment_type": None,
+        "daypart": daypart,
+        "show_mode": show_mode,
+        "pd_flags": pd_context,
     }
 
-    # === VEGA INTRO
-    vega_intro = "You're watching Token News."
+
+    # ========================================================
+    # 2. INTRO — VEGA + CHIP
+    # ========================================================
+
+    vega_intro = "You're watching ToknNews."
     timeline.append(_block(vega_intro, "vega", "vega_intro"))
     audio.append(_audio_block(vega_intro, "vega", "vega_intro", voice_map))
-    scene_state["previous_line"] = {"speaker": "vega", "text": vega_intro}
-    scene_state["block_index"] += 1
+    estimated_runtime_sec += estimate_block_runtime("vega_intro")
 
-    # === CHIP INTRO
-    chip_intro = f"Good {daypart}, welcome to Token News."
+    chip_intro = f"Good {daypart}, welcome to ToknNews."
     timeline.append(_block(chip_intro, "chip", "chip_intro"))
     audio.append(_audio_block(chip_intro, "chip", "chip_intro", voice_map))
-    scene_state["previous_line"] = {"speaker": "chip", "text": chip_intro}
-    scene_state["block_index"] += 1
+    estimated_runtime_sec += estimate_block_runtime("chip_intro")
 
-    # === RUNDOWN
-    micro = [make_micro_headline(item["headline"]) for item in story_clusters[:6]]
-    rundown_text = "Here’s what’s ahead:\n" + "\n".join(f"• {m}" for m in micro)
+    scene_state["previous_line"] = {"speaker": "chip", "text": chip_intro}
+    scene_state["block_index"] += 2
+
+
+    # ========================================================
+    # 3. RUNDOWN (Dynamic)
+    # ========================================================
+    rundown_text = generate_rundown(
+        story_clusters=story_clusters,
+        pd_context=pd_context,
+        daypart=daypart,
+    )
+
     timeline.append(_block(rundown_text, "chip", "chip_rundown"))
     audio.append(_audio_block(rundown_text, "chip", "chip_rundown", voice_map))
+    estimated_runtime_sec += estimate_block_runtime("chip_rundown")
+
     scene_state["previous_line"] = {"speaker": "chip", "text": rundown_text}
     scene_state["block_index"] += 1
 
-    # === STORIES
+
+    # ========================================================
+    # 4. AD INSERTION (PD + rules)
+    # ========================================================
+    ad_block = maybe_insert_ad(
+        pd_context=pd_context,
+        estimated_runtime_sec=estimated_runtime_sec,
+        segment_index=1  # after rundown
+    )
+
+    if ad_block:
+        timeline.append(ad_block)
+        audio.append(_audio_block(ad_block["text"], "vega", "ad_read", voice_map))
+        estimated_runtime_sec += estimate_block_runtime("ad_read")
+        scene_state["block_index"] += 1
+
+
+    # ========================================================
+    # 5. STORY LOOPS — GPT CONVERSATION ENGINE
+    # ========================================================
+
     for idx, story in enumerate(story_clusters[:6]):
-        headline = story["headline"]
+        headline = story.get("headline", "")
         summary  = story.get("summary", "")
         domain   = story.get("domain", "general")
         anchors  = story.get("anchors", ["chip"])
-        primary  = anchors[0]
+
+        primary   = anchors[0]
         secondary = anchors[1] if len(anchors) > 1 else None
+        tertiary  = pd_context.get("tertiary_anchor") if idx == 0 else None
 
-        pd_cfg = run_pd(
-            headline         = headline,
-            suggested_anchor = primary,
-            story_index      = idx,
-            total_stories    = len(story_clusters)
+        print(f"[TL DEBUG] Story {idx} domain={domain} anchors={story.get('anchors')} primary={primary} secondary={secondary}")
+
+        # Only PD-authorized tertiary anchors
+        if tertiary == primary or tertiary == secondary:
+            tertiary = None
+
+        participants = [primary]
+        if secondary: participants.append(secondary)
+        if tertiary:  participants.append(tertiary)
+
+        scene_state["segment_type"] = "conversation"
+
+        conv_text = write_block_conversation(
+            primary     = primary,
+            headline    = headline,
+            synthesis   = summary,
+            scene_state = scene_state,
+            episode_id  = "episode",
+            secondary   = secondary,
         )
-        scene_state["pd_flags"] = pd_cfg
 
-        # === High-heat: run duo block conversation
-        if should_enable_duo(domain) and primary.lower() != "chip":
-            scene_state["segment_type"] = "conversation"
-            conv_text = write_block_conversation(
-                primary     = primary,
-                headline    = headline,
-                synthesis   = summary,
-                scene_state = scene_state,
-                episode_id  = "episode",
-                secondary   = secondary
-            )
-            lines = [ln for ln in conv_text.splitlines() if ":" in ln]
-            first_line_chip = False
-            for i, line in enumerate(lines):
-                speaker_part, text_part = line.split(":", 1)
-                speaker = speaker_part.strip().lower()
-                text = text_part.strip().strip('"')
-                tag = "chip_transition" if i == 0 and speaker == "chip" else (
-                      "anchor_analysis" if i == 0 else
-                      "anchor_analysis" if i == 1 and first_line_chip else
-                      "duo_exchange")
-                if i == 0 and speaker == "chip":
-                    first_line_chip = True
-                timeline.append(_block(text, speaker, tag))
-                audio.append(_audio_block(text, speaker, tag, voice_map))
-                scene_state["previous_line"] = {"speaker": speaker, "text": text}
-                scene_state["block_index"] += 1
+        print(f"[TL DEBUG] conv for '{headline}' (first 120 chars): {conv_text[:120]!r}")
 
-        # === Fallback: primary analysis only
-        else:
-            scene_state["segment_type"] = "analysis"
-            solo_text = write_block_conversation(
-                primary     = primary,
-                headline    = headline,
-                synthesis   = summary,
-                scene_state = scene_state,
-                episode_id  = "episode",
-                secondary   = None
-            )
-            lines = [ln for ln in solo_text.splitlines() if ":" in ln]
-            for i, line in enumerate(lines):
-                speaker_part, text_part = line.split(":", 1)
-                speaker = speaker_part.strip().lower()
-                text = text_part.strip().strip('"')
-                tag = "chip_transition" if i == 0 else "anchor_analysis"
-                timeline.append(_block(text, speaker, tag))
-                audio.append(_audio_block(text, speaker, tag, voice_map))
-                scene_state["previous_line"] = {"speaker": speaker, "text": text}
-                scene_state["block_index"] += 1
+        # Split lines Chip: Hello
+        lines = [ln.strip() for ln in conv_text.splitlines() if ":" in ln]
 
-    # === CHIP OUTRO
-    outro = "Thank you for watching ToknNews — we'll see you in the next block."
+        for i, line in enumerate(lines):
+            speaker, text = line.split(":", 1)
+            speaker = speaker.strip().lower()
+            text = text.strip().strip('"')
+
+            # Determine tag classification
+            if i == 0 and speaker == "chip":
+                tag = "chip_transition"
+            elif i == 0:
+                tag = "anchor_analysis"
+            elif i == 1:
+                tag = "anchor_analysis"
+            else:
+                tag = "duo_exchange"
+
+            timeline.append(_block(text, speaker, tag))
+            audio.append(_audio_block(text, speaker, tag, voice_map))
+
+            estimated_runtime_sec += estimate_block_runtime(tag)
+
+            scene_state["previous_line"] = {"speaker": speaker, "text": text}
+            scene_state["block_index"] += 1
+
+
+        # PD Smart Ad Insertions (optional)
+        ad_block = maybe_insert_ad(
+            pd_context=pd_context,
+            estimated_runtime_sec=estimated_runtime_sec,
+            segment_index=idx + 2,
+        )
+        if ad_block:
+            timeline.append(ad_block)
+            audio.append(_audio_block(ad_block["text"], "vega", "ad_read", voice_map))
+            estimated_runtime_sec += estimate_block_runtime("ad_read")
+            scene_state["block_index"] += 1
+
+
+    # ========================================================
+    # 6. OUTRO — always CHIP
+    # ========================================================
+
+    outro = "Thanks for watching ToknNews — Cope. Seethe. Stack. It's your choice."
     timeline.append(_block(outro, "chip", "chip_outro"))
     audio.append(_audio_block(outro, "chip", "chip_outro", voice_map))
-    scene_state["previous_line"] = {"speaker": "chip", "text": outro}
-    scene_state["block_index"] += 1
+    estimated_runtime_sec += estimate_block_runtime("chip_outro")
 
+
+    # ========================================================
+    # RETURN PACKAGE
+    # ========================================================
     return {
         "blocks": timeline,
-        "audio_blocks": audio
+        "audio_blocks": audio,
+        "pd_context": pd_context,
+        "estimated_runtime_sec": estimated_runtime_sec,
     }
+

@@ -1,114 +1,179 @@
 #!/usr/bin/env python3
 """
-grok_writer.py  
+grok_writer.py
 TOKEN NEWS — Character Conversation Engine (OpenAI)
 
-Provides high-level generation of multi-line dialogues between anchor characters for Token News.
-Replaces legacy line-by-line Grok (xAI) generation with full-block conversation using OpenAI GPT models.
+Generates multi-line dialogue blocks between Chip and one or more anchor
+characters for ToknNews.
+
+This replaces the old per-line writer. It is intentionally small:
+ - takes a headline + synthesis
+ - uses persona_loader to pull longform persona text
+ - asks OpenAI for a short back-and-forth conversation
 """
 
-import os
-import time
-import json
+from __future__ import annotations
+
+from typing import Optional, Dict, List
+
 from openai import OpenAI
 
-# Load OpenAI API key from vault
 from backend.runtime.vault_loader import load_secrets
-OPENAI_API_KEY = load_secrets().get("openai_api_key", "")
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+from script_engine.character_brain.persona_loader import get_persona_lines
 
-# ============================================================
-# Conversation Block Generator
-# ============================================================
-def write_block_conversation(primary: str,
-                             headline: str,
-                             synthesis: str = "",
-                             scene_state: dict = None,
-                             episode_id: str = "",
-                             secondary: str = None) -> str:
+# --------------------------------------------------------------------
+# OpenAI client
+# --------------------------------------------------------------------
+_secrets = load_secrets()
+OPENAI_API_KEY = _secrets.get("openai_api_key", "")
+
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    client = None
+    print("[GrokWriter] WARNING: OPENAI_API_KEY is empty; using fallback dialogue only.")
+
+# --------------------------------------------------------------------
+# Persona helpers
+# --------------------------------------------------------------------
+def _persona_profile(name: str) -> str:
     """
-    Generate a full multi-line dialogue between Chip and other anchor(s) about the given story.
-    - primary: the main anchor for the story (other than Chip).
-    - secondary: an optional second anchor for a trio conversation.
-    Returns a formatted multi-line string with speaker labels (e.g., "Chip: ...").
+    Build a third‑person description of the anchor from character_brain.json
+    via persona_loader.get_persona_lines().
     """
-    primary = primary.lower()
+    try:
+        lines = get_persona_lines(name)
+    except Exception:
+        lines = []
+
+    name_cap = name.capitalize()
+    if not lines:
+        return f"{name_cap} is an anchor on Token News with a distinct on‑air style."
+
+    summary = " ".join(lines)
+    summary = " ".join(summary.split())  # collapse whitespace
+    return f"{name_cap} is an anchor on Token News. {summary}"
+
+
+def _clean_model_output(text: str) -> str:
+    """
+    Strip fences / wrapping quotes so timeline_builder can split on newlines.
+    """
+    if not text:
+        return ""
+
+    t = text.strip()
+
+    # remove simple code fences
+    if t.startswith("```"):
+        t = t.strip("`").strip()
+
+    # trim surrounding quotes
+    if t.startswith('"') and t.endswith('"'):
+        t = t[1:-1].strip()
+
+    return t
+
+
+# --------------------------------------------------------------------
+# Public API
+# --------------------------------------------------------------------
+def write_block_conversation(
+    primary: str,
+    headline: str,
+    synthesis: str = "",
+    scene_state: Optional[dict] = None,
+    episode_id: str = "",
+    secondary: Optional[str] = None,
+) -> str:
+    """
+    Generate a full multi-line dialogue between Chip and other anchor(s).
+
+    Returns a string where each line looks like:
+        Chip: ...
+        Ivy:  ...
+        Cash: ...
+    """
+    print(f"[GW DEBUG] primary={primary}, secondary={secondary}, headline={headline}")
+
+    primary = (primary or "chip").lower()
     secondary = secondary.lower() if secondary else None
-    # Determine which anchor characters will participate (excluding Chip if listed)
-    other_names = [primary] if primary != "chip" else []
-    if secondary and secondary != "" and secondary != primary:
-        other_names.append(secondary)
-    other_names = [name for name in other_names if name and name != "chip"]
-    # If there's no other anchor to converse with (e.g., primary is Chip), fall back to a simple line
-    if not other_names:
-        return f"{primary.capitalize()}: {synthesis or '...'}"
-    # Build persona profiles for Chip and the other anchor(s)
-    from script_engine.character_brain.persona_prompt_config import PERSONA_PROMPT_CONFIG
-    def get_persona_profile(name: str) -> str:
-        profile = PERSONA_PROMPT_CONFIG.get(name.lower(), {}).get("gpt_prompt_seed", "")
-        if profile:
-            # Convert persona description to third person (for prompt context)
-            desc = profile
-            if desc.startswith(f"You are {name.capitalize()},"):
-                desc = desc.replace(f"You are {name.capitalize()},", f"{name.capitalize()} is", 1)
-            if ". You " in desc:
-                desc = desc.replace(". You ", f". {name.capitalize()} ", 1)
-            # Adjust common verbs to third-person form
-            for verb in ["speak", "talk", "think", "analyze", "interpret", "break", "translate", "interrupt"]:
-                desc = desc.replace(f"{name.capitalize()} {verb} ", f"{name.capitalize()} {verb}s ")
-            # Fix multi-verb phrases for grammatical correctness
-            if "talks fast, think faster," in desc:
-                desc = desc.replace("talks fast, think faster,", "talks fast, thinks faster,")
-            if "wall, interrupt with" in desc:
-                desc = desc.replace("wall, interrupt with", "wall, interrupts with")
-            return desc.strip()
-        else:
-            # Fallback generic identity if no profile found
-            return f"{name.capitalize()} is an anchor on Token News with a unique style."
-    chip_profile = get_persona_profile("chip")
-    profiles = {name: get_persona_profile(name) for name in other_names}
-    # Build the conversation prompt with roles and context
-    other_display = " and ".join(n.capitalize() for n in other_names)
+
+    # anchors other than Chip that will appear in the block
+    others: List[str] = []
+    if primary != "chip":
+        others.append(primary)
+    if secondary and secondary not in others and secondary != "chip":
+        others.append(secondary)
+
+    # If nothing but Chip is left, just make a simple two-line exchange.
+    if not others:
+        synth = synthesis if synthesis else ""
+        return f"Chip: {headline}?\n{primary.capitalize()}: {synth}"
+
+    chip_profile = _persona_profile("chip")
+    profiles: Dict[str, str] = {name: _persona_profile(name) for name in others}
+
+    other_display = " and ".join(n.capitalize() for n in others)
+
     characters_section = "Characters:\n"
     characters_section += f"- {chip_profile}\n"
-    for name in other_names:
+    for name in others:
         characters_section += f"- {profiles[name]}\n"
-    prompt = (
-        "The following is a conversation on Token News about a story.\n"
-        f"Headline: {headline}\n"
-        f"Summary: {synthesis}\n\n"
-        f"{characters_section}\n"
-        "Instructions:\n"
-        f"- Chip (the host) should start by asking a question or prompting {other_names[0].capitalize()}.\n"
-        "- Chip remains calm, guiding the discussion.\n"
-        f"- {other_display} {'are' if len(other_names)>1 else 'is'} more impulsive or colorful in commentary.\n"
-        + ("- The other anchors may banter with each other while Chip moderates.\n" if secondary and secondary.lower() in other_names else "")
-        + "- Keep the dialogue realistic, coherent, and highly entertaining.\n"
-        "- Do not simply repeat the headline; discuss implications or context.\n"
-        "- No filler greetings or sign-offs.\n"
-        "- Aim for about 4 to 6 lines of dialogue in total.\n"
-        "- Use each speaker's name followed by a colon for their dialogue.\n"
-        "- Only output the dialogue lines (no descriptions or stage directions).\n"
-    )
-    # Call OpenAI to generate the conversation block
+
+    prompt = f"""
+The following is a live conversation on Token News about a crypto / markets story.
+
+Headline: {headline}
+Summary: {synthesis or 'N/A'}
+
+{characters_section}
+Instructions:
+- Chip (the host) opens by prompting {others[0].capitalize()} about the story.
+- Chip stays calm and precise, keeping the conversation moving.
+- {other_display} {'are' if len(others) > 1 else 'is'} more impulsive or colorful in commentary.
+- Brief banter is fine, but keep it tight and information-dense.
+- Do NOT repeat the headline verbatim. Talk about implications, risk and context.
+- No greetings, no sign-offs, no narrator text.
+- Aim for roughly 4–6 lines of dialogue total.
+- Format output as plain lines like:
+  Chip: ...
+  Ivy: ...
+  Cash: ...
+- Do not include any explanations before or after the dialogue.
+""".strip()
+
+    # If we don't have a configured client, fall back to a deterministic script.
+    if client is None:
+        print("[GrokWriter] Using deterministic fallback conversation (no OpenAI client).")
+        lines = [
+            f"Chip: {headline} — what are we really looking at here?",
+            f"{others[0].capitalize()}: {synthesis or 'It moves the risk needle more than the price action shows.'}",
+        ]
+        if len(others) > 1:
+            lines.append(
+                f"{others[1].capitalize()}: And as usual, the market is late to that party."
+            )
+        return "\n".join(lines)
+
     try:
-        response = openai_client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=180,
-            temperature=0.8
+            max_tokens=220,
+            temperature=0.8,
         )
-        conv_text = response.choices[0].message.content.strip()
-    except Exception as e:
+        raw = response.choices[0].message.content or ""
+        return _clean_model_output(raw)
+    except Exception as e:  # pragma: no cover - defensive path
         print("[GrokWriter] ERROR generating conversation:", e)
-        # Fallback to a simple exchange if the API call fails
-        if secondary and secondary.lower() in other_names:
-            return (f"Chip: {headline}?\\n"
-                    f"{other_names[0].capitalize()}: This is big news, Chip.\\n"
-                    f"{other_names[1].capitalize()}: Absolutely, quite a story.")
-        else:
-            return (f"Chip: {headline}?\\n"
-                    f"{other_names[0].capitalize()}: Certainly, it's an important update.")
-    # Clean up any extraneous formatting (remove wrapping quotes or code blocks if present)
-    conv_text = conv_text.strip().strip('"').strip("```").strip()
-    return conv_text
+        # Structured but simple fallback
+        fallback_lines = [
+            f"Chip: {headline} — give it to us straight.",
+            f"{others[0].capitalize()}: {synthesis or 'Short version: risk is shifting faster than the headline suggests.'}",
+        ]
+        if len(others) > 1:
+            fallback_lines.append(
+                f"{others[1].capitalize()}: Perfect setup for people who only skim the chart."
+            )
+        return "\n".join(fallback_lines)

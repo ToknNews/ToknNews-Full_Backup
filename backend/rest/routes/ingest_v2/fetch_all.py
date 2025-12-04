@@ -14,6 +14,13 @@ Responsibilities:
 """
 
 import time
+from .ai_enrich import enrich_ai
+from .moralis_transformer import (
+    format_whale_events,
+    format_liquidations,
+    format_rpc_block,
+    format_gas
+)
 
 from backend.rest.routes.ingest_v2.api_fetchers import (
     fetch_marketaux,
@@ -120,40 +127,44 @@ def fetch_all():
     # -----------------------------------------
     rss_raw = fetch_rss_sources(RSS_URLS)
     rss_norm = normalize_rss_entries(rss_raw)
-    enriched_rss = [enrich(x) for x in rss_norm]
+    enriched_rss = [enrich_ai(enrich(x)) for x in rss_norm]
 
     # -----------------------------------------
     # 2. MarketAux
     # -----------------------------------------
     maux_raw = fetch_marketaux() or []
     maux_norm = normalize_marketaux_items(maux_raw)
-    enriched_maux = [enrich(x) for x in maux_norm]
+    enriched_maux = [enrich_ai(enrich(x)) for x in maux_norm]
 
     # -----------------------------------------
     # 3. NewsData
     # -----------------------------------------
     news_raw = fetch_newsdata() or []
     news_norm = normalize_newsdata_items(news_raw)
-    enriched_news = [enrich(x) for x in news_norm]
+    enriched_news = [enrich_ai(enrich(x)) for x in news_norm]
 
     # -----------------------------------------
     # 4. CryptoPanic
     # -----------------------------------------
     panic_raw = fetch_cryptopanic() or []
     panic_norm = normalize_cryptopanic_items(panic_raw)
-    enriched_panic = [enrich(x) for x in panic_norm]
+    enriched_panic = [enrich_ai(enrich(x)) for x in panic_norm]
 
     # -----------------------------------------
     # 5. Moralis Light Signals
     # -----------------------------------------
-    moralis_whales       = fetch_moralis_whales()
-    moralis_liquidations = fetch_moralis_liquidations()
+    moralis_whale_stories = format_whale_events(moralis_whales)
+    moralis_liquidation_stories = format_liquidations(moralis_liquidations)
+    ai_moralis_whales = [enrich_ai(x) for x in moralis_whale_stories]
+    ai_moralis_liq = [enrich_ai(x) for x in moralis_liquidation_stories]
 
     # -----------------------------------------
     # 6. RPC Signals (block/gas)
     # -----------------------------------------
-    rpc_block = fetch_rpc_block()
-    rpc_gas   = fetch_rpc_gas()
+    rpc_block_story = format_rpc_block(rpc_block)
+    rpc_gas_story = format_gas(rpc_gas)
+    ai_rpc_block = [enrich_ai(x) for x in rpc_block_story]
+    ai_rpc_gas = [enrich_ai(x) for x in rpc_gas_story]
 
     # -----------------------------------------
     # Return unified dataset
@@ -163,8 +174,8 @@ def fetch_all():
     return (
         enriched_rss,
         enriched_api_items,
-        moralis_whales,
-        moralis_liquidations,
-        rpc_block,
-        rpc_gas
+        ai_moralis_whales,
+        ai_moralis_liquidations,
+        ai_rpc_block,
+        ai_rpc_gas
     )

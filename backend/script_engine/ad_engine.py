@@ -1,165 +1,57 @@
 #!/usr/bin/env python3
 """
 ad_engine.py
-TOKEN NEWS — AD INSERTION ENGINE (2025)
+ToknNews 2025 — Canonical Lightweight Ad Engine (Transfer Brain v1.0)
 
-Handles:
- - Global ad on/off toggle
- - Modes: disabled / fixed / smart
- - Vega-only VO for ad reads
- - Sponsor-defined copy (future dashboard-driven)
- - PD-aware insertion rules
- - Runtime-aware throttling
+Rules:
+ - No ads for Breaking or Morning Brief formats.
+ - Only insert ads if PD format is NEWS and runtime > 120 seconds.
+ - Only insert ads at segment_index == 1 (post-rundown) or mid-show slots.
+ - Return None if no ad should be inserted.
 """
 
-import time
-from typing import Optional, Dict
-
-# ============================================================
-# DEFAULT CONFIG (Dashboard will override later)
-# ============================================================
-
-AD_CONFIG = {
-    "enabled": False,                 # Master toggle OFF by default
-    "mode": "disabled",               # Options: disabled, fixed, smart
-    "voice_style": "professional",    # V2 (your chosen default)
-    "sponsor_name": None,
-    "ad_copy": None,                  # Full sponsor message (future dashboard)
-    "min_gap_seconds": 120,           # Minimum runtime gap between ads
-    "last_ad_timestamp": 0,
-}
-
-# ============================================================
-# AD COPY TEMPLATE (V2 Professional Default)
-# ============================================================
-
-DEFAULT_AD_COPY = (
-    "Today's episode of ToknNews is brought to you by our partners. "
-    "Supporting the tools and infrastructure that keep the crypto markets moving."
-)
-
-# ============================================================
-# INTERNAL: BUILD AD BLOCK
-# ============================================================
-
-def _build_ad_block(voice_style: str, sponsor_copy: Optional[str]) -> Dict:
+def maybe_insert_ad(pd_context=None, estimated_runtime_sec=0, segment_index=0):
     """
-    Returns a ready-to-insert timeline block for Vega to read.
-    """
-    text = sponsor_copy or DEFAULT_AD_COPY
-
-    # All ads are spoken by Vega, booth voice only.
-    return {
-        "speaker": "vega",
-        "text": text,
-        "tag": "ad_read",
-        "timestamp": time.time(),
-    }
-
-# ============================================================
-# DETERMINE IF AD SHOULD BE INSERTED
-# ============================================================
-
-def _should_insert_ad(estimated_runtime_sec: float) -> bool:
-    """
-    Determines if we can insert an ad based on time gap.
-    """
-    now = time.time()
-
-    # Not enough gap since last ad
-    if now - AD_CONFIG["last_ad_timestamp"] < AD_CONFIG["min_gap_seconds"]:
-        return False
-
-    # Runtime constraints (only if runtime > 3 minutes)
-    if estimated_runtime_sec < 180:
-        return False
-
-    return True
-
-# ============================================================
-# PUBLIC API: maybe_insert_ad()
-# ============================================================
-
-def maybe_insert_ad(
-    *,
-    pd_context: dict,
-    estimated_runtime_sec: float,
-    segment_index: int
-) -> Optional[Dict]:
-    """
-    Called by timeline_builder_v3 during block construction.
+    Inputs:
+      pd_context: dict from PDv3
+      estimated_runtime_sec: float
+      segment_index: int (1 = after rundown)
 
     Returns:
-        None → no ad inserted
-        Dict → ad block to append to timeline
+      None  (no ad)
+      or
+      { "text": "..." }
     """
 
-    # MASTER TOGGLE
-    if not AD_CONFIG["enabled"]:
+    if pd_context is None:
         return None
 
-    mode = AD_CONFIG["mode"]
+    fmt = pd_context.get("format", "NEWS")
 
-    # -------------------------------------
-    # MODE: DISABLED
-    # -------------------------------------
-    if mode == "disabled":
+    # Only NEWS format uses ads in v1.0
+    if fmt != "NEWS":
         return None
 
-    # -------------------------------------
-    # MODE: FIXED (simple, predictable)
-    # -------------------------------------
-    if mode == "fixed":
-        # Insert AFTER rundown (segment_index == 1)
-        if segment_index == 1 and _should_insert_ad(estimated_runtime_sec):
-            AD_CONFIG["last_ad_timestamp"] = time.time()
-            return _build_ad_block(
-                AD_CONFIG["voice_style"],
-                AD_CONFIG["ad_copy"]
-            )
+    # Only insert ads if runtime exceeds 120 seconds (2 mins)
+    if estimated_runtime_sec < 120:
         return None
 
-    # -------------------------------------
-    # MODE: SMART (PD-driven)
-    # -------------------------------------
-    if mode == "smart":
+    # Ad slots:
+    #  segment_index == 1  → after rundown
+    #  segment_index > 1   → mid-show intervals
+    if segment_index == 1:
+        return {
+            "text": "This segment is brought to you by ToknNews Premium — stay informed."
+        }
 
-        # PD rule: breaking news = minimal ads
-        if pd_context.get("format") == "breaking_news":
-            return None
+    # Optional mid-show ad every ~3 stories
+    if segment_index % 3 == 0:
+        return {
+            "text": "Enjoying the coverage? Upgrade to ToknNews Premium for full deep dives."
+        }
 
-        # PD rule: deep dive → ad BEFORE deep dive
-        if pd_context.get("format") == "deep_dive" and segment_index == 0:
-            if _should_insert_ad(estimated_runtime_sec):
-                AD_CONFIG["last_ad_timestamp"] = time.time()
-                return _build_ad_block(
-                    AD_CONFIG["voice_style"],
-                    AD_CONFIG["ad_copy"]
-                )
-            return None
-
-        # PD rule: chaos friday → ads mid-show only
-        if pd_context.get("format") == "chaos_friday" and segment_index == 2:
-            if _should_insert_ad(estimated_runtime_sec):
-                AD_CONFIG["last_ad_timestamp"] = time.time()
-                return _build_ad_block(
-                    AD_CONFIG["voice_style"],
-                    AD_CONFIG["ad_copy"]
-                )
-            return None
-
-        # PD rule: standard → spaced by time + runtime
-        if pd_context.get("format") == "standard":
-            if _should_insert_ad(estimated_runtime_sec) and segment_index % 3 == 0:
-                AD_CONFIG["last_ad_timestamp"] = time.time()
-                return _build_ad_block(
-                    AD_CONFIG["voice_style"],
-                    AD_CONFIG["ad_copy"]
-                )
-        return None
-
-    # -------------------------------------
-    # Unknown mode
-    # -------------------------------------
     return None
 
+
+if __name__ == "__main__":
+    print("[AD] ad_engine (Transfer Brain v1.0) loaded.")

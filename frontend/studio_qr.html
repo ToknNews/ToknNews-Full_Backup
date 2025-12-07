@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TOKN Studio TOTP Setup</title>
+</head>
+<body style="background:#000; color:#fff; font-family:Inter,Arial; text-align:center; padding-top:40px;">
+<h2>Scan to Enroll Tokn Control Studio</h2>
+<p>Open Google Authenticator (or Authy/1Password) → Add account → Scan this QR.</p>
+<img id="qr" style="margin-top:30px; box-shadow:0 0 24px #0af; border-radius:12px;" />
+<script>
+fetch("/api/studio/qrcode")
+  .then(r => r.json())
+  .then(data => { document.getElementById('qr').src = data.qr; });
+</script>
+</body>
+</html>

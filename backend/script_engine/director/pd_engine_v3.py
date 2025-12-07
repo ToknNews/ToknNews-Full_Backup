@@ -1,277 +1,155 @@
 #!/usr/bin/env python3
 """
 pd_engine_v3.py
-TOKEN NEWS — 2025 PROGRAM DIRECTOR (PD v3)
+ToknNews 2025 — Canonical Persona Director (Transfer Brain v1.0)
 
-Determines:
- - Episode Format
- - Anchor roles (primary / secondary / tertiary)
- - Tone & pacing flags
- - Runtime targets
- - Breaking news triggers (GPT-assisted)
- - Chaos Friday rules
- - Deep Dive selection
- - Smart ad placement signals (ads still disabled by default)
+PDv3 Responsibilities:
+ - Select primary and secondary anchors
+ - Apply breaking / hot / cold_start flags
+ - Manage cast fatigue
+ - Produce a stable PD context for timeline builder
 
-This module outputs a single PD context object consumed
-by timeline_builder_v3.
+This is a deterministic lightweight PD engine.
 """
 
 import time
-import json
-import datetime
-from openai import OpenAI
 
-from backend.runtime.vault_loader import load_secrets
 
-secrets = load_secrets()
-OPENAI_API_KEY = secrets.get("openai_api_key", "")
+# -----------------------------------------------------------
+# CONFIG
+# -----------------------------------------------------------
 
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-# ============================================================
-# RUNTIME TARGETS (from your config)
-# ============================================================
-
-RUNTIME_TARGETS_SEC = {
-    "morning_brief": 3 * 60,
-    "breaking_news": 1 * 60,
-    "deep_dive":     5 * 60,
-    "standard":     15 * 60,
-    "chaos_friday":  7 * 60,
+ANCHOR_GROUPS = {
+    "macro":      ["bond"],
+    "regulation": ["lawson"],
+    "markets":    ["cash", "bond"],
+    "defi":       ["reef"],
+    "onchain":    ["ledger"],
+    "ai":         ["neura"],
+    "culture":    ["bitsy"],
+    "general":    ["chip"],
 }
 
-# ============================================================
-# BREAKING TRIGGERS: Keyword detection
-# ============================================================
+EXCLUDE_SECONDARY = {"chip", "vega"}  # chip = host, vega = booth-only
 
-BREAKING_KEYWORDS = [
-    "hack", "exploit", "breach", "drain",
-    "rug", "compromised", "attack",
-    "liquidation", "selloff", "cascade",
-    "flash crash", "emergency", "lawsuit",
-    "charged", "sec sues", "filed", "indicted",
-]
 
-# ============================================================
-# FORMAT DECISION HELPER — GPT-ASSISTED
-# ============================================================
+# -----------------------------------------------------------
+# SECONDARY ANCHOR LOGIC
+# -----------------------------------------------------------
 
-def _gpt_assess_urgency(headline: str, summary: str) -> float:
+def choose_secondary(primary, domain, fatigue_state):
     """
-    Returns an urgency score from 0 → 1.
-    GPT looks at sentiment, volatility, regulatory significance.
+    Returns either:
+        <anchor>
+    or:
+        None
     """
-    prompt = f"""
-Rate the urgency of this crypto/finance news item from 0 to 1.
 
-Headline: {headline}
-Summary: {summary}
+    # Domain anchors excluding primary
+    candidates = [a for a in ANCHOR_GROUPS.get(domain, []) if a != primary]
 
-Urgency should be:
-- High for hacks, exploits, liquidations, regulatory actions, lawsuits, FOMC impact.
-- Medium for market volatility or major corporate moves.
-- Low for general updates, mild price moves, or opinion pieces.
+    # If no domain Same-family alt, fall back to any anchor except exclusions
+    if not candidates:
+        all_anchors = {a for v in ANCHOR_GROUPS.values() for a in v}
+        candidates = [
+            a for a in all_anchors
+            if a != primary and a not in EXCLUDE_SECONDARY
+        ]
 
-Only output a decimal number (example: 0.72).
-"""
-    try:
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=5,
-            temperature=0,
-        )
-        score_str = resp.choices[0].message.content.strip()
-        return float(score_str)
-    except:
-        return 0.0
+    # Remove fatigued anchor if over-used
+    last_used = fatigue_state.get("last_secondary")
+    if last_used in candidates and fatigue_state.get("secondary_streak", 0) >= 2:
+        candidates = [c for c in candidates if c != last_used]
+
+    if not candidates:
+        return None
+
+    sec = candidates[0]  # deterministic selection
+    return sec
 
 
-# ============================================================
-# DOMAIN WEIGHTS (used to prioritize anchors in formats)
-# ============================================================
+# -----------------------------------------------------------
+# PD ENGINE v3 — MAIN ENTRY
+# -----------------------------------------------------------
 
-DOMAIN_PRIORITY = {
-    "macro": 1.0,
-    "regulation": 1.0,
-    "markets": 0.9,
-    "defi": 0.8,
-    "onchain": 0.8,
-    "ai": 0.7,
-    "venture": 0.6,
-    "culture": 0.4,
-    "sentiment": 0.4,
-    "general": 0.3,
-}
-
-# ============================================================
-# TERTIARY ANCHOR RULE (PD-controlled)
-# ============================================================
-
-def _maybe_assign_tertiary(domain: str, urgency: float):
+def pd_assign_roles(stories):
     """
-    You enabled tertiary anchors ONLY when PD flags.
-    That is: high domain heat + high urgency + NOT Breaking
+    Takes a list of enriched+aggregated items and annotates each with:
+      primary_anchor
+      secondary_anchor
+      flags
     """
-    if domain in ["macro", "regulation"] and urgency > 0.6:
-        return "bond"
-    if domain in ["defi", "onchain"] and urgency > 0.6:
-        return "reef"
-    if domain in ["markets"] and urgency > 0.6:
-        return "cash"
-    return None
 
-
-# ============================================================
-# DAY-BASED LOGIC
-# ============================================================
-
-def _is_chaos_friday():
-    return datetime.datetime.utcnow().weekday() == 4  # Friday
-
-
-# ============================================================
-# CROSS-SOURCE DUPLICATE DETECTION
-# ============================================================
-
-def _is_repeated_story(headline: str, all_stories: list) -> bool:
-    count = sum(1 for s in all_stories if headline.lower() in s["headline"].lower())
-    return count >= 3
-
-
-# ============================================================
-# PUBLIC API — PD v3 CORE FUNCTION
-# ============================================================
-
-def pd_decide_format(story_clusters: list):
-    """
-    Returns full PD context:
-    {
-        "format": "breaking_news",
-        "target_runtime_sec": 300,
-        "primary_anchor": "lawson",
-        "secondary_anchor": "ledger",
-        "tertiary_anchor": None,
-        "chaos_level": 0.0,
-        "insert_ad": False,
-        "handoff_style": "tight",
+    annotated = []
+    fatigue_state = {
+        "last_secondary": None,
+        "secondary_streak": 0
     }
-    """
 
-    if not story_clusters:
-        return {"format": "standard", "target_runtime_sec": RUNTIME_TARGETS_SEC["standard"]}
+    for idx, story in enumerate(stories):
+        domain = story.get("domain", "general")
+        anchors = story.get("anchors", ["chip"])
+        primary = anchors[0]
 
-    # ========================================================
-    # STEP 1: SCORE STORIES
-    # ========================================================
-    scores = []
-    for story in story_clusters[:6]:
-        headline = story.get("headline", "")
-        summary  = story.get("summary", "")
-        domain   = story.get("domain", "general")
+        breaking = bool(story.get("breaking", False))
+        importance = float(story.get("importance", 5))
 
-        urgency = _gpt_assess_urgency(headline, summary)
-        repeated = _is_repeated_story(headline, story_clusters)
-        breaking_kw = any(k in headline.lower() for k in BREAKING_KEYWORDS)
+        # Decide secondary
+        if breaking or importance >= 7:
+            secondary = None
+        else:
+            secondary = choose_secondary(primary, domain, fatigue_state)
 
-        # Score structure
-        scores.append({
-            "headline": headline,
-            "summary": summary,
-            "domain": domain,
-            "urgency": urgency,
-            "repeated": repeated,
-            "breaking": breaking_kw,
+        # Update fatigue state
+        if secondary and secondary == fatigue_state["last_secondary"]:
+            fatigue_state["secondary_streak"] += 1
+        else:
+            fatigue_state["secondary_streak"] = 1
+            fatigue_state["last_secondary"] = secondary
+
+        flags = {
+            "breaking": breaking,
+            "hot": importance >= 7,
+            "cold_start": idx == 0
+        }
+
+        annotated.append({
+            "primary_anchor": primary,
+            "secondary_anchor": secondary,
+            "flags": flags
         })
 
-    # ========================================================
-    # STEP 2: BREAKING ANALYSIS
-    # ========================================================
-    for s in scores:
-        if s["breaking"]:
-            return {
-                "format": "breaking_news",
-                "target_runtime_sec": RUNTIME_TARGETS_SEC["breaking_news"],
-                "primary_anchor": "lawson" if s["domain"] == "regulation" else "ledger",
-                "secondary_anchor": None,
-                "tertiary_anchor": None,
-                "chaos_level": 0.0,
-                "insert_ad": False,
-                "handoff_style": "tight",
-            }
+    return annotated
 
-        if s["urgency"] > 0.75 or s["repeated"]:
-            return {
-                "format": "breaking_news",
-                "target_runtime_sec": RUNTIME_TARGETS_SEC["breaking_news"],
-                "primary_anchor": "chip",
-                "secondary_anchor": None,
-                "tertiary_anchor": None,
-                "chaos_level": 0.0,
-                "insert_ad": False,
-                "handoff_style": "tight",
-            }
 
-    # ========================================================
-    # STEP 3: CHAOS FRIDAY
-    # ========================================================
-    if _is_chaos_friday():
-        return {
-            "format": "chaos_friday",
-            "target_runtime_sec": RUNTIME_TARGETS_SEC["chaos_friday"],
-            "primary_anchor": "bitsy",
-            "secondary_anchor": "cash",
-            "tertiary_anchor": None,
-            "chaos_level": 1.0,
-            "insert_ad": False,
-            "handoff_style": "loose",
-        }
+# -----------------------------------------------------------
+# FORMAT DECISION (PD CONTEXT)
+# -----------------------------------------------------------
 
-    # ========================================================
-    # STEP 4: DEEP DIVE (highest urgency + domain priority)
-    # ========================================================
-    deep_candidate = max(scores, key=lambda s: DOMAIN_PRIORITY.get(s["domain"], 0) + s["urgency"])
-    if deep_candidate["urgency"] > 0.5 and deep_candidate["domain"] in ["macro", "regulation", "ai", "venture"]:
-        tertiary = _maybe_assign_tertiary(deep_candidate["domain"], deep_candidate["urgency"])
-        return {
-            "format": "deep_dive",
-            "target_runtime_sec": RUNTIME_TARGETS_SEC["deep_dive"],
-            "primary_anchor": deep_candidate["domain"],  # placeholder replaced by timeline
-            "secondary_anchor": None,
-            "tertiary_anchor": tertiary,
-            "chaos_level": 0.0,
-            "insert_ad": False,
-            "handoff_style": "tight",
-        }
+def pd_decide_format(stories):
+    """
+    Generates the PD context used by timeline_builder_v3.
+    Transfer Brain v1.0 defaults:
+      format = NEWS
+      target_runtime = 180 seconds (~3 min)
+    """
 
-    # ========================================================
-    # STEP 5: MORNING BRIEF (time-based or calm markets)
-    # ========================================================
-    utc_hour = datetime.datetime.utcnow().hour
-    if 10 <= utc_hour <= 15:
-        return {
-            "format": "morning_brief",
-            "target_runtime_sec": RUNTIME_TARGETS_SEC["morning_brief"],
-            "primary_anchor": "chip",
-            "secondary_anchor": "cash",
-            "tertiary_anchor": None,
-            "chaos_level": 0.0,
-            "insert_ad": False,
-            "handoff_style": "tight",
-        }
+    role_map = pd_assign_roles(stories)
 
-    # ========================================================
-    # DEFAULT: STANDARD
-    # ========================================================
     return {
-        "format": "standard",
-        "target_runtime_sec": RUNTIME_TARGETS_SEC["standard"],
-        "primary_anchor": "chip",
-        "secondary_anchor": "bond",
-        "tertiary_anchor": None,
-        "chaos_level": 0.1,
-        "insert_ad": False,
-        "handoff_style": "normal",
+        "format": "NEWS",
+        "target_runtime_sec": 180,
+        "assigned_roles": role_map,
+        "timestamp": time.time()
     }
 
+
+# -----------------------------------------------------------
+# CLI TEST
+# -----------------------------------------------------------
+if __name__ == "__main__":
+    test = [
+        {"headline": "BTC surges on ETF flows", "domain": "markets", "anchors": ["cash","bond"], "importance": 5, "breaking": False},
+        {"headline": "SEC announces new hearing", "domain": "regulation", "anchors": ["lawson"], "importance": 6, "breaking": True},
+    ]
+    print(pd_decide_format(test))

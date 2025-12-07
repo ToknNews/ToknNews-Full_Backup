@@ -1,0 +1,141 @@
+/* ------------------------------------------------------
+      TOKN GLOBAL AESTHETIC FRAMEWORK — CSS
+   ------------------------------------------------------ */
+
+/* Universal Reset */
+body {
+    margin: 0;
+    background: #000;
+    font-family: "Inter", sans-serif;
+    color: #ccecff;
+    overflow-x: hidden;
+}
+
+/* ------------------------------------------
+   GLOBAL PARTICLE BACKGROUND (Landing-Exact)
+   ------------------------------------------ */
+#particle-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.particle {
+    position: absolute;
+    bottom: -20px;
+    background: rgba(45,115,255,0.8);
+    border-radius: 50%;
+    opacity: 0.7;
+    filter: blur(1px);
+    animation-name: floatUp;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes floatUp {
+    0%   { transform: translateY(0); opacity: 0.4; }
+    50%  { opacity: 0.9; }
+    100% { transform: translateY(-120vh); opacity: 0; }
+}
+
+/* ------------------------------------------
+   GLOBAL HOLOGRAPHIC BUTTON
+   (Used for CTAs everywhere)
+   ------------------------------------------ */
+.tokn-btn {
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: 500;
+    color: white;
+    cursor: pointer;
+
+    background: linear-gradient(
+        135deg,
+        rgba(60, 120, 255, 0.35),
+        rgba(15, 60, 200, 0.7),
+        rgba(90, 150, 255, 0.35)
+    );
+
+    border: 1px solid rgba(80, 140, 255, 0.6);
+    border-radius: 999px; /* PILL SHAPE */
+
+    box-shadow:
+        0 0 20px rgba(45,115,255,0.4),
+        inset 0 0 12px rgba(45,115,255,0.5);
+
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+
+    transition: transform .2s ease, box-shadow .2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.tokn-btn:hover {
+    transform: scale(1.06);
+    box-shadow:
+        0 0 30px rgba(45,115,255,0.7),
+        inset 0 0 16px rgba(45,115,255,0.7);
+}
+
+/* animated holographic sweep */
+.tokn-btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 150%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.35),
+        transparent
+    );
+    opacity: 0.7;
+    transform: skewX(-25deg);
+    animation: holoSweep 3.5s infinite ease-in-out;
+}
+
+@keyframes holoSweep {
+    0%   { left: -150%; opacity: 0; }
+    40%  { opacity: 0.9; }
+    55%  { left: 150%; opacity: 0.8; }
+    100% { left: 150%; opacity: 0; }
+}
+
+/* ------------------------------------------
+   GLOBAL HOLO-GLASS CARD
+   ------------------------------------------ */
+.holo-card {
+    background: rgba(10,30,55,0.35);
+    border-radius: 16px;
+    border: 1px solid rgba(0,120,255,0.35);
+    padding: 22px;
+    backdrop-filter: blur(22px) saturate(180%);
+    box-shadow:
+        0 0 25px rgba(0,120,255,0.35),
+        inset 0 0 35px rgba(0,120,255,0.15);
+}
+
+/* ------------------------------------------
+   GLOBAL SLIDE-IN PANEL (Reusable)
+   ------------------------------------------ */
+.tokn-panel {
+    position: fixed;
+    top: 0;
+    left: -420px;
+    width: 380px;
+    height: 100vh;
+    background: rgba(0,20,40,0.92);
+    border-right: 1px solid rgba(0,120,255,0.4);
+    transition: transform 0.45s ease;
+    z-index: 99999;
+    overflow-y: auto;
+}
+
+.tokn-panel.open {
+    transform: translateX(420px);
+}
+

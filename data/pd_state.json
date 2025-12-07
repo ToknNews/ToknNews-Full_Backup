@@ -1,15 +1,16 @@
 {
-  "cycle_index": 0,
-  "last_anchor_used": "chip",
-  "anchor_fatigue": {
-    "chip": 1533
+  "anchor_usage": {
+    "chip": 1540,
+    "bond": 0,
+    "cash": 197,
+    "ledger": 0,
+    "neura": 2,
+    "reef": 4,
+    "lawson": 0,
+    "bitsy": 2877,
+    "penny": 0,
+    "rex": 0
   },
-  "theme_memory": [],
-  "last_segment_type": "anchor_analysis",
-  "volatility_level": 0.0,
-  "social_heat": 0.0,
-  "breaking_active": false,
-  "bitsy_last_used": -999,
-  "vega_last_used": -999,
-  "chip_reset_last": -999
+  "last_anchors": [],
+  "episode_count": 0
 }

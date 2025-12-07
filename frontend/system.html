@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TOKN System Console</title>
+
+    <link rel="stylesheet" href="/frontend/assets/css/system.css" />
+    <script defer src="/frontend/assets/js/system.js"></script>
+</head>
+
+<body>
+
+<!-- PARTICLE LAYER -->
+<div id="particle-layer"></div>
+
+<!-- HEADER -->
+<header class="sys-header">
+    <img src="/frontend/assets/img/Tokn_Logo_Main_4.png" class="sys-logo" />
+    <h1 class="sys-title">System Console</h1>
+</header>
+
+<!-- CTA -->
+<div class="episodes-cta-container">
+    <button class="tokn-btn" onclick="window.open('/episodes.html','_blank')">
+        ▶ Broadcasts
+    </button>
+</div>
+
+<!-- GRID -->
+<section class="sys-grid">
+
+    <!-- LEFT COLUMN -->
+    <div class="sys-col">
+        <div class="sys-card">
+            <h2>Ingestion Velocity</h2>
+            <canvas id="ingestChart" width="320" height="140"></canvas>
+        </div>
+
+        <div class="sys-card">
+            <h2>Domains</h2>
+            <canvas id="domainsChart" width="320" height="140"></canvas>
+        </div>
+
+        <div class="sys-card">
+            <h2>Sentiment</h2>
+            <canvas id="sentimentChart" width="320" height="140"></canvas>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="sys-col">
+        <div class="sys-card">
+            <h2>Cluster Narratives</h2>
+            <div id="clusterList">Loading...</div>
+        </div>
+
+        <div class="sys-card">
+            <h2>On-Chain Signals</h2>
+            <div id="onchainPanel">Loading...</div>
+        </div>
+
+        <div class="sys-card">
+            <h2>Recent Episodes</h2>
+            <div id="episodesPanel">Loading...</div>
+        </div>
+    </div>
+
+</section>
+
+<!-- ARCHITECTURE CTA -->
+<div class="arch-cta-container">
+    <button id="openArchitecture" class="tokn-btn">⚡ System Architecture</button>
+</div>
+
+<!-- ARCHITECTURE PANEL (ENHANCED HOLOGRAPHIC UI) -->
+<div id="archPanel" class="arch-panel">
+
+    <!-- Holographic background layers -->
+    <div class="arch-holo-glow"></div>
+    <div class="arch-holo-scan"></div>
+    <div class="arch-holo-refraction"></div>
+
+    <div class="arch-inner">
+
+        <!-- HEADER -->
+        <div class="arch-header">
+            <h1 class="arch-title">TOKN System Architecture</h1>
+            <button id="archClose" class="arch-close">&times;</button>
+        </div>
+
+        <!-- BODY -->
+        <div class="arch-body">
+
+            <p class="arch-intro">
+                ToknNews operates a fully autonomous multimodal broadcast engine built to transform raw environmental signals
+                into structured, on-brand programming — continuously, safely, and at scale.
+            </p>
+
+            <h3 class="arch-section">Core Pipeline</h3>
+            <ul class="arch-list">
+                <li><strong>Signal Intake Layer</strong> — Aggregates structured + unstructured signals across markets, culture, news, and emergent activity domains.</li>
+                <li><strong>Narrative Intelligence Engine</strong> — Detects patterns, clusters semantically related events, and identifies emerging themes.</li>
+                <li><strong>Contextual Story Engine</strong> — Shapes narrative units with coherence modeling, perspective alignment, and hierarchical story structuring.</li>
+                <li><strong>Temporal Orchestration Layer</strong> — Sequences stories into an optimized broadcast timeline ensuring clarity, pacing, and balance.</li>
+                <li><strong>Media Synthesis & Assembly</strong> — Generates multimodal assets and assembles complete episodes via automated rendering pipelines.</li>
+                <li><strong>Autonomous Distribution Layer</strong> — Packages broadcasts, formats for platforms, and schedules releases automatically.</li>
+            </ul>
+
+            <h3 class="arch-section">System Modes</h3>
+            <ul class="arch-list">
+                <li><strong>Autonomous Mode</strong> — Full ingestion → synthesis → generation → distribution loop.</li>
+                <li><strong>Broadcast Mode</strong> — Produces high-quality episodes for immediate publishing.</li>
+                <li><strong>Analytics Mode</strong> — Exposes system telemetry, cluster intelligence, sentiment flows, and trend evolution.</li>
+                <li><strong>Review Mode</strong> — Optional operator insight into clusters, storybanks, and episode structures.</li>
+            </ul>
+
+            <h3 class="arch-section">System Principles</h3>
+            <ul class="arch-list">
+                <li><strong>Autonomy</strong> — Designed for uninterrupted continuous operation.</li>
+                <li><strong>Interpretability</strong> — Transparent reasoning exposed via the console.</li>
+                <li><strong>Creative Stability</strong> — Maintains tone, persona, and identity across all broadcasts.</li>
+                <li><strong>Scalability</strong> — Extensible across new domains, languages, and content models.</li>
+            </ul>
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

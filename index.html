@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ToknNews Admin Dashboard</title>
+
+    <!-- Correct absolute paths -->
+    <link rel="icon" type="image/png" href="/frontend/assets/img/Tokn Favicon.png" />
+    <link rel="stylesheet" href="/frontend/assets/css/tokn.css" />
+    <link rel="stylesheet" href="/admin/assets/css/admin.css" />
+
+    <script defer src="/frontend/assets/js/app.js"></script>
+    <script defer src="/admin/assets/js/admin.js"></script>
+</head>
+
+<body class="admin-body">
+
+<header class="admin-header">
+    <img src="/frontend/assets/img/Tokn_Logo_Main_4.png" class="admin-logo" />
+    <button id="cmd-orb" class="cmd-orb"></button>
+</header>
+
+<div class="admin-tabs">
+    <button id="tabControls" class="tab active">Controls</button>
+    <button id="tabAnalytics" class="tab">Analytics</button>
+</div>
+
+<!-- CONTROLS VIEW -->
+<div id="controlsView" class="tab-content active">
+
+    <section class="admin-title-section">
+        <h1 class="admin-page-title">ToknNews Control Center</h1>
+        <p class="admin-page-subtitle">AI Broadcast Mode, Pipeline Health, Story Intelligence</p>
+    </section>
+
+    <section class="admin-grid">
+
+        <!-- Show Mode Override -->
+        <div class="admin-card glass-card">
+            <h2>Show Mode Override</h2>
+            <p>Select a show format for the next episode.</p>
+
+            <select id="modeSelect" class="admin-select">
+                <option value="AUTO">AUTO (PDv4 decides)</option>
+                <option value="BREAKING">Breaking</option>
+                <option value="MORNING_BRIEF">Morning Brief</option>
+                <option value="NEWS">News</option>
+                <option value="HEAVY_NEWS">Heavy News</option>
+                <option value="DEEP_DIVE">Deep Dive</option>
+                <option value="CHAOS">Chaos Mode</option>
+            </select>
+
+            <button id="saveMode" class="admin-btn neon-btn">Save Mode</button>
+            <p id="modeStatus" class="admin-status"></p>
+        </div>
+
+        <!-- Story Cap Override -->
+        <div class="admin-card glass-card">
+            <h2>Story Cap</h2>
+            <p>Adjust the maximum number of stories for the next episode.</p>
+
+            <input id="storyCapInput" class="admin-input" type="number" min="1" max="20" value="5" />
+
+            <button id="saveCap" class="admin-btn neon-btn">Save Story Cap</button>
+            <p id="capStatus" class="admin-status"></p>
+        </div>
+
+        <!-- Ingestion -->
+        <div class="admin-card glass-card">
+            <h2>Ingestion Monitor</h2>
+            <p id="ingestInfo">Loading ingestion stats...</p>
+            <button id="triggerIngest" class="admin-btn">Trigger Ingestion</button>
+        </div>
+
+        <!-- StoryBank -->
+        <div class="admin-card glass-card">
+            <h2>StoryBank Memory</h2>
+            <div id="storyBankStats">Loading StoryBank...</div>
+            <button id="refreshStoryBank" class="admin-btn">Refresh</button>
+        </div>
+
+        <!-- PDv4 Inspector -->
+        <div class="admin-card glass-card full-width">
+            <h2>PDv4 Casting Inspector</h2>
+            <div id="pdInspector" class="pd-grid"></div>
+            <button id="refreshPD" class="admin-btn">Refresh</button>
+        </div>
+
+        <!-- Generate Episode -->
+        <div class="admin-card glass-card full-width">
+            <h2>Generate Episode</h2>
+            <button id="generateEpisode" class="admin-btn neon-btn-big">
+                Generate New Episode
+            </button>
+            <p id="episodeStatus" class="admin-status"></p>
+        </div>
+
+    </section>
+
+</div>
+
+<!-- ANALYTICS VIEW -->
+<div id="analyticsView" class="tab-content">
+
+    <section class="admin-title-section">
+        <h1 class="admin-page-title">ToknNews Analytics</h1>
+        <p class="admin-page-subtitle">AI System Metrics • Narrative Trends • Market Signals</p>
+    </section>
+
+    <section class="analytics-grid">
+
+        <div class="analytics-card glass-card">
+            <h2>Anchor Usage</h2>
+            <canvas id="chartAnchorUsage"></canvas>
+        </div>
+
+        <div class="analytics-card glass-card">
+            <h2>Domain Heat</h2>
+            <canvas id="chartDomainHeat"></canvas>
+        </div>
+
+        <div class="analytics-card glass-card">
+            <h2>Sentiment Trend</h2>
+            <canvas id="chartSentiment"></canvas>
+        </div>
+
+        <div class="analytics-card glass-card">
+            <h2>Narrative Clusters</h2>
+            <canvas id="chartClusterRadar"></canvas>
+        </div>
+
+        <div class="analytics-card glass-card">
+            <h2>Ingestion Velocity</h2>
+            <canvas id="chartVelocity"></canvas>
+        </div>
+
+        <div class="analytics-card glass-card full-width">
+            <h2>Episode History</h2>
+            <canvas id="chartEpisodeHistory"></canvas>
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+</html>

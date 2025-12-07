@@ -1,32 +1,55 @@
 #!/usr/bin/env python3
 """
 runtime_estimator.py
-TOKEN NEWS — Runtime Estimator (2025)
-
-Very lightweight estimator used by:
- - PD Engine v3
- - Timeline Builder v3
- - Ad Engine
-
-Purpose:
-Predict approximate runtime of a block WITHOUT asking GPT.
+ToknNews — Correct Hybrid Runtime Estimator (Block-Count Safe)
 """
 
-# Hard-coded averages (in seconds) based on typical GPT output lengths
-RUNTIME_WEIGHTS = {
-    "vega_intro":     2,
-    "chip_intro":     3,
-    "chip_rundown":   8,
-    "ad_read":        7,
-    "chip_transition": 4,
-    "anchor_analysis": 9,
-    "duo_exchange":   7,
-    "chip_outro":     4,
-}
+# -------------------------
+# PREVIEW MODE
+# -------------------------
 
-def estimate_block_runtime(tag: str) -> float:
+def estimate_preview_runtime(text: str, speaker: str, tag: str = "") -> float:
     """
-    Returns estimated runtime for a given block tag.
-    Fallback is 6s for unknown types.
+    Accurate runtime estimator using characters-per-second logic.
+    Prevents inflated runtimes when block count is large.
     """
-    return RUNTIME_WEIGHTS.get(tag, 6.0)
+    if not text:
+        return 0.6
+
+    t = text.strip()
+    # 17 chars/sec is realistic for calm broadcast pacing
+    sec = max(0.6, len(t) / 17.0)
+
+    # Light adjustments
+    if tag == "chip_transition":
+        sec += 0.15
+    elif tag == "anchor_analysis":
+        sec += 0.05
+    elif tag == "chip_outro":
+        sec += 0.25
+
+    return sec
+
+
+# -------------------------
+# TTS MODE
+# -------------------------
+
+def estimate_tts_runtime(audio_metadata: dict) -> float:
+    if not isinstance(audio_metadata, dict):
+        return None
+    dur = audio_metadata.get("duration") or audio_metadata.get("audio_duration")
+    if isinstance(dur, (int, float)):
+        return max(0.1, float(dur))
+    return None
+
+
+# -------------------------
+# PUBLIC API
+# -------------------------
+
+def estimate_block_runtime(tag: str, text: str = "", speaker: str = "", audio_metadata=None):
+    tts_time = estimate_tts_runtime(audio_metadata)
+    if tts_time is not None:
+        return tts_time
+    return estimate_preview_runtime(text, speaker, tag)

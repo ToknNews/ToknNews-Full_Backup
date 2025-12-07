@@ -1,48 +1,56 @@
 #!/usr/bin/env python3
 """
-Unified secret accessor for ToknNews.
-Uses Vault if available, otherwise ENV fallback.
+vault_loader.py — Hybrid Vault + ENV loader
+ToknNews 2025
 """
 
 import os
-import requests
+import json
+import hvac
 
-VAULT_ADDR = os.getenv("VAULT_ADDR", "http://127.0.0.1:8200")
+VAULT_ADDR = os.getenv("VAULT_ADDR")
 VAULT_TOKEN = os.getenv("VAULT_TOKEN")
-SECRET_PATH = "secret/data/toknnews/ingestion"
 
 
 def load_secrets():
-    """Load from Vault with ENV fallback."""
-    # No Vault token → fallback
-    if not VAULT_TOKEN:
-        print("[Vault] No VAULT_TOKEN, using ENV fallback.")
-        return _env()
+    """
+    Loads secrets from Vault.
+    If Vault is unavailable or empty, falls back to environment variables.
+    """
+
+    secrets = {}
+
+    # --- FALLBACK TO ENV FIRST ---
+    # This ensures OpenAI & cluster engine DO NOT fail
+    env_keys = [
+        "OPENAI_API_KEY",
+        "ELEVENLABS_API_KEY",
+        "VAULT_ADDR",
+        "VAULT_TOKEN",
+    ]
+
+    for key in env_keys:
+        if os.getenv(key):
+            secrets[key.lower()] = os.getenv(key)
+
+    # --- If Vault not configured, stop here ---
+    if not VAULT_ADDR or not VAULT_TOKEN:
+        print("[Vault] No VAULT_TOKEN or VAULT_ADDR set — using env fallback only.")
+        return secrets
 
     try:
-        url = f"{VAULT_ADDR}/v1/{SECRET_PATH}"
-        resp = requests.get(url, headers={"X-Vault-Token": VAULT_TOKEN}, timeout=3)
+        client = hvac.Client(url=VAULT_ADDR, token=VAULT_TOKEN)
+        if not client.is_authenticated():
+            print("[Vault] Authentication failed — using env fallback.")
+            return secrets
 
-        if resp.status_code != 200:
-            print(f"[Vault] ({resp.status_code}) fallback to ENV.")
-            return _env()
+        vault_data = client.secrets.kv.v2.read_secret_version(path="openai")
+        for k, v in vault_data["data"]["data"].items():
+            secrets[k.lower()] = v
 
-        data = resp.json().get("data", {}).get("data", {})
-        merged = {**_env(), **data}
-        return merged
+        print("[Vault] Loaded secrets from Vault + env hybrid")
 
     except Exception as e:
-        print(f"[Vault] ERROR: {e}")
-        return _env()
+        print(f"[Vault] Error loading Vault: {e} — using env fallback.")
 
-
-def _env():
-    return {
-        "marketaux_api_key": os.getenv("MARKETAUX_API_KEY", ""),
-        "newsdata_api_key": os.getenv("NEWSDATA_API_KEY", ""),
-        "cryptopanic_key": os.getenv("CRYPTOPANIC_KEY", ""),
-        "moralis_api_key": os.getenv("MORALIS_API_KEY", ""),
-        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),  # ← keep this line
-        "rpc_mainnet": os.getenv("RPC_MAINNET", "https://eth.llamarpc.com"),
-        "coindesk_api_key": os.getenv("COINDESK_API_KEY", "")
-    }
+    return secrets

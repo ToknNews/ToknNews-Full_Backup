@@ -1,86 +1,102 @@
 #!/usr/bin/env python3
 """
 dynamic_rundown.py
-TOKEN NEWS — Dynamic Rundown Engine (2025)
+ToknNews — STRICT Thematic Rundown Generator (GPT-4o-mini Compliant)
 
-Generates:
- - A natural, professional Chip rundown
- - Domain-aware grouping
- - Daypart-aware phrasing
- - PD format-aware framing
+Forces:
+ - 3–5 thematic bullets
+ - ZERO headline text
+ - ZERO token/project names
+ - Natural newsroom phrasing
 """
 
-import time
-from typing import List, Dict
+from openai import OpenAI
+from backend.runtime.vault_loader import load_secrets
 
-# ============================================================
-# HEADLINE SHORTENER (8–12 words)
-# ============================================================
+_secrets = load_secrets()
+client = OpenAI(api_key=_secrets.get("openai_api_key","")) if _secrets.get("openai_api_key") else None
 
-def _micro(headline: str) -> str:
-    words = headline.split()
-    if len(words) <= 12:
-        return headline
-    return " ".join(words[:12]) + "…"
-
-# ============================================================
-# CHIP RUNDOWN OPENINGS
-# ============================================================
-
-OPENERS = {
-    "evening": "Here’s what we’re watching tonight:",
-    "morning": "Here’s what’s moving the markets this morning:",
-    "afternoon": "Here’s what’s shaping the afternoon session:",
-    "breaking_news": "Here’s what we know right now:",
-    "deep_dive": "Before we get into the deep dive, here’s the broader backdrop:",
-    "chaos_friday": "Here’s the lineup in today's chaos cycle:",
-    "standard": "Here’s what we’re watching:",
+PHONETIC_MAP = {
+    "BTC": "bee-tee-see",
+    "ETH": "ee-th",
+    "USDT": "you-ess-dee-tee",
+    "USDC": "you-ess-dee-see",
+    "ETF": "E-T-F",
+    "AI": "A-I",
 }
 
-# ============================================================
-# DOMAIN LABELS (used for grouping if desired later)
-# ============================================================
+def phonetic(s):
+    for k,v in PHONETIC_MAP.items():
+        s = s.replace(k, v).replace(k.lower(), v)
+    return s
 
-DOMAIN_LABELS = {
-    "macro": "macro & policy",
-    "regulation": "regulation",
-    "markets": "market flows",
-    "defi": "DeFi",
-    "onchain": "on-chain activity",
-    "ai": "AI & infra",
-    "culture": "culture & sentiment",
-    "sentiment": "sentiment",
-    "general": "broader market",
-}
 
-# ============================================================
-# MAIN RUNDOWN GENERATOR
-# ============================================================
+def generate_rundown(story_clusters, pd_context, daypart):
 
-def generate_rundown(story_clusters: List[Dict], *, pd_context: dict, daypart: str):
-    """
-    Returns Chip's rundown text.
-    """
+    top = story_clusters[:10]
+    headlines = [phonetic(s["headline"]) for s in top]
 
-    # Determine opener
-    fmt = pd_context.get("format", "standard")
+    if client is None:
+        return (
+            "Here’s what we’re watching:\n"
+            "• Sentiment is shifting across markets.\n"
+            "• Traders are reacting to new catalysts.\n"
+            "• Liquidity and volatility trends are emerging.\n"
+        )
 
-    if fmt == "morning_brief":
-        opener = OPENERS["morning"]
-    elif fmt == "breaking_news":
-        opener = OPENERS["breaking_news"]
-    elif fmt == "deep_dive":
-        opener = OPENERS["deep_dive"]
-    elif fmt == "chaos_friday":
-        opener = OPENERS["chaos_friday"]
-    else:
-        opener = OPENERS.get(daypart, OPENERS["standard"])
+    prompt = f"""
+You are writing the on-air rundown for ToknNews.
+Chip is speaking.
 
-    # Select top stories (PD formats may override count later)
-    top_stories = story_clusters[:6]
-    bullets = [f"• {_micro(item['headline'])}" for item in top_stories]
+RAW HEADLINES (DO NOT REPEAT):
+{chr(10).join('- ' + h for h in headlines)}
 
-    rundown_text = opener + "\n" + "\n".join(bullets)
+Your strict tasks:
 
-    return rundown_text
+1. DO NOT REPEAT ANY HEADLINE TEXT.
+2. DO NOT MENTION ANY TOKEN, PROJECT, COIN, OR ORGANIZATION NAME.
+3. DO NOT OUTPUT ANY TICKER SYMBOLS.
+4. Transform ALL stories into 3–5 THEMATIC INSIGHTS.
+5. ONLY describe market-wide patterns, sentiment shifts, catalysts, or behavioral trends.
+6. Bullets must be 1 short sentence each (10–18 words).
+7. Output MUST begin with:
+   Here’s what we’re watching:
+8. Follow with ONLY "•" bullet points.
+9. ABSOLUTELY NO direct references to news items.
+10. ABSOLUTELY NO proper nouns from crypto.
 
+Examples (GOOD THEMES):
+• Market sentiment is shifting as traders rotate into new opportunities.
+• Liquidity patterns show cautious optimism despite recent volatility.
+• Analysts are watching catalysts that could influence momentum in coming sessions.
+
+Examples (NOT ALLOWED):
+• LINK is trending.
+• Bitcoin sees a spike.
+• Headline #1 says…
+• Anything naming tokens, companies, projects, chains, or upgrades.
+
+Now generate exactly the required rundown.
+""".strip()
+
+    try:
+        rsp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user","content":prompt}],
+            max_tokens=200,
+            temperature=0.2,
+            timeout=10,
+        )
+        return rsp.choices[0].message.content.strip()
+
+    except Exception:
+        return (
+            "Here’s what we’re watching:\n"
+            "• Sentiment is shifting across markets.\n"
+            "• Traders are reacting to new catalysts.\n"
+            "• Liquidity and volatility trends are emerging.\n"
+        )
+
+
+if __name__ == "__main__":
+    print("[RUNDOWN] Strict thematic generator loaded.")

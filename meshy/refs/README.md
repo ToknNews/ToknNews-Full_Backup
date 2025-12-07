@@ -1,1 +1,0 @@
-# Meshy Reference Art

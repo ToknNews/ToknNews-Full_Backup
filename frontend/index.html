@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ToknNews</title>
+
+    <!-- OpenGraph -->
+    <meta property="og:title" content="ToknNews — Autonomous AI Broadcast Network">
+    <meta property="og:description" content="The world's first fully autonomous AI-powered broadcast network.">
+    <meta property="og:image" content="https://toknnews.com/frontend/assets/img/YT_Banner_Tokn.jpg?v=3">
+    <meta property="og:url" content="https://toknnews.com">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ToknNews — Autonomous AI Broadcast Network">
+    <meta name="twitter:description" content="The world's first fully autonomous AI-powered broadcast network.">
+    <meta name="twitter:image" content="https://toknnews.com/frontend/assets/img/YT_Banner_Tokn.jpg?v=3">
+
+    <!-- iOS/Android Homescreen Icon -->
+    <link rel="apple-touch-icon" href="/frontend/assets/img/Tokn_Favicon.png" />
+    <link rel="icon" type="image/png" href="/frontend/assets/img/Tokn_Favicon.png" />
+
+    <link rel="stylesheet" href="/frontend/assets/css/landing.css?v=3" />
+    <script defer src="/frontend/assets/js/landing.js?v=3"></script>
+</head>
+
+<body>
+
+<!-- PARTICLES -->
+<div id="particle-layer"></div>
+
+<!-- SECRET LOGIN TOKEN (TOP RIGHT) -->
+<button id="studioLoginBtn" class="token-login-btn">
+    <img src="/frontend/assets/img/Tokn_Button_2.png" alt="login" />
+</button>
+
+<!-- LOGIN POPUP -->
+<div id="studioLoginModal" class="studio-modal hidden">
+    <div class="studio-modal-content">
+        <button class="studio-close">&times;</button>
+        <h2 class="studio-title">TOKN Control Studio</h2>
+        <input id="studioKey" class="studio-input" placeholder="Access Key" />
+        <button id="studioSubmit" class="studio-submit-btn">Enter</button>
+    </div>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+    <img src="/frontend/assets/img/Tokn_Logo_Main_4.png" class="hero-logo" />
+    <p class="hero-tagline">Autonomous AI Broadcast Network</p>
+    <button class="cta-button" id="enterSystemBtn">Enter System</button>
+</header>
+
+</body>
+</html>

@@ -1,7 +1,18 @@
-from fastapi import APIRouter
+#!/usr/bin/env python3
+"""
+health.py
+ToknNews V2 — Health Check Endpoint
+"""
 
-router = APIRouter(prefix="/health")
+from flask import Blueprint, jsonify
+import time
 
-@router.get("/")
-def health_check():
-    return {"status": "ok"}
+health_bp = Blueprint("health_bp", __name__)
+
+@health_bp.route("/api/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "ok",
+        "service": "toknnews_rest",
+        "timestamp": time.time()
+    })

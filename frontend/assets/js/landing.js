@@ -1,82 +1,55 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const particleLayer = document.getElementById("particle-layer");
 
-    // PARTICLE ENGINE (same as before)
-    const container = document.getElementById("particle-layer");
-
+    // --- Floating particles ---
     function spawnParticle() {
         const p = document.createElement("div");
         p.classList.add("particle");
 
         const size = Math.random() * 4 + 2;
-        const left = Math.random() * 100;
-        const duration = Math.random() * 4 + 4;
-
         p.style.width = `${size}px`;
         p.style.height = `${size}px`;
-        p.style.left = `${left}vw`;
-        p.style.animationDuration = `${duration}s`;
+        p.style.left = `${Math.random() * 100}vw`;
+        p.style.animationDuration = `${4 + Math.random() * 4}s`;
 
-        container.appendChild(p);
-        setTimeout(() => p.remove(), duration * 1000);
+        particleLayer.appendChild(p);
+        setTimeout(() => p.remove(), 8000);
     }
-
     setInterval(spawnParticle, 160);
 
-    // MAIN CTA → system console
-    const systemBtn = document.getElementById("enterSystemBtn");
-    systemBtn.addEventListener("click", () => {
-        window.location.href = "/system.html";
+    // --- Login Modal ---
+    const loginBtn = document.getElementById("loginBtn");
+    const modal = document.getElementById("studioLoginModal");
+    const closeBtn = document.getElementById("closeLogin");
+    const submitBtn = document.getElementById("studioLoginSubmit");
+
+    loginBtn.addEventListener("click", () => {
+        modal.classList.add("open");
     });
 
-    // CONTROL STUDIO LOGIN (TOTP)
-    const loginBtn   = document.getElementById("studioLoginBtn");
-    const modal      = document.getElementById("studioLoginModal");
-    const closeBtn   = document.querySelector(".studio-close");
-    const codeInput  = document.getElementById("studioKey");
-    const submitBtn  = document.getElementById("studioSubmit");
-
-    function openModal() {
-        modal.classList.remove("hidden");
-        codeInput.value = "";
-        codeInput.focus();
-    }
-
-    function closeModal() {
-        modal.classList.add("hidden");
-    }
-
-    loginBtn.addEventListener("click", openModal);
-    closeBtn.addEventListener("click", closeModal);
+    closeBtn.addEventListener("click", () => {
+        modal.classList.remove("open");
+    });
 
     submitBtn.addEventListener("click", async () => {
-        const code = codeInput.value.trim();
-        if (!code) {
-            alert("Enter your 6-digit code.");
+        const pw = document.getElementById("studioPassword").value;
+        const code = document.getElementById("studioTOTP").value;
+
+        const res = await fetch("/api/studio/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pw, token: code })
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+            alert("Login failed: " + data.error);
             return;
         }
 
-        try {
-            const res = await fetch("/api/studio/totp", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code })
-            });
-
-            if (!res.ok) {
-                alert("Invalid or expired code.");
-                return;
-            }
-
-            const data = await res.json();
-            if (data.ok) {
-                // TODO: change to your real studio URL
-                window.location.href = "/control-studio.html";
-            } else {
-                alert("Invalid or expired code.");
-            }
-        } catch (e) {
-            console.error("TOTP error", e);
-            alert("Error verifying code.");
-        }
+        alert("Access granted!");
+        modal.classList.remove("open");
+        window.location.href = "/system.html";
     });
 });

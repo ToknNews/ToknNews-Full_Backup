@@ -1,0 +1,389 @@
+📘 TOKNNEWS MASTER WIKI — PUBLIC SAFE VERSION (FOR GITHUB)
+
+An architectural overview of the ToknNews autonomous AI broadcast system.
+
+1. Overview
+
+ToknNews is an autonomous AI-driven broadcast engine that continuously ingests signals, synthesizes narratives, generates episodes, and distributes content.
+The architecture is modular, scalable, and aligned with a “hands-off” operating model where the system autonomously reacts to real-time world activity.
+
+Core Capabilities:
+
+Automated multi-source ingestion (RSS, APIs, on-chain)
+
+Narrative clustering via GPT
+
+Story enrichment + ranking
+
+Timeline orchestration (PDv4)
+
+Media synthesis (voice, visual, CapCut)
+
+Distribution (Metricool)
+
+Backend dashboard + analytics
+
+Secure Control Studio (password + TOTP login)
+
+High-tech unified frontend style system
+
+2. Repository Structure Overview
+/opt/toknnews/
+│
+├── backend/
+│   ├── rest/                ← Flask REST API
+│   │   ├── api.py           ← Registers all blueprints
+│   │   └── routes/          ← Individual API route modules
+│   │       ├── health.py
+│       │       ├── admin.py
+│   │       ├── analytics.py
+│   │       ├── analytics_refresh.py
+│   │       ├── diagnostics_gpt.py
+│   │       ├── studio.py                    ← Secure login API
+│   │       └── ingest_v2/
+│   │           ├── submit.py
+│   │           ├── ingest_controller.py      ← Main ingestion pipeline
+│   │           └── sources_*.py
+│   │
+│   ├── script_engine/
+│   │   ├── analytics_cluster_gpt_diagnostics.py
+│   │   ├── analytics_engine.py
+│   │   ├── knowledge/
+│   │   ├── meta_enrich.py
+│   │   ├── narrative_packager.py
+│   │   └── story_bank.py
+│
+├── frontend/
+│   ├── index.html                            ← Landing page
+│   ├── system.html                           ← System Console dashboard
+│   ├── episodes.html                         ← Full player cards for final episodes
+│   │
+│   └── assets/
+│       ├── css/
+│       │   ├── global.css                    ← Shared particles/buttons/theme
+│       │   ├── landing.css
+│       │   ├── system.css
+│       │   └── episodes.css
+│       │
+│       ├── js/
+│       │   ├── landing.js
+│       │   ├── system.js
+│       │   └── episodes.js
+│       │
+│       └── img/
+│           ├── Tokn_Logo_Main_4.png
+│           ├── Tokn_Button_2.png             ← Secret login button
+│           └── YT_Banner_Tokn.jpg            ← Share card
+│
+└── data/
+    ├── analytics/
+    │   ├── clusters.json
+    │   ├── sentiment.json
+    │   ├── domains.json
+    │   └── onchain.json
+    │
+    ├── rolling_stories.json
+    ├── history/
+    └── secrets/
+        ├── tokn_studio_password.json         ← bcrypt password hash
+        └── tokn_studio_totp.json             ← TOTP seed
+
+3. Ingestion Pipeline (Ingest V2)
+
+The ingestion pipeline executes when /api/admin/ingest is called.
+
+Stages
+
+Raw Fetch
+
+RSS feeds
+
+API news sources
+
+On-chain feeds (future expansion)
+
+Enrichment
+
+entity extraction
+
+domain assignment
+
+sentiment
+
+anchors & personas
+
+Stage 3 Enricher
+
+important metadata
+
+breaking signals
+
+source weighting
+
+Aggregation
+
+removes duplicates & near-duplicates
+
+merges similar stories
+
+Ranking
+
+importance scoring
+
+keeps top narratives for meta enrichment
+
+Meta Enrichment
+
+persona-aware rewriting
+
+contextual injection
+
+StoryBank Write
+
+Long-term durable memory
+
+Rolled forward over time
+
+Used in narrative packaging
+
+Analytics Write
+
+sentiment.json
+
+domains.json
+
+onchain.json
+
+clusters.json (placeholder on ingest run)
+
+Clusters are intentionally skipped during ingestion run to reduce blocking and moved into a separate endpoint.
+
+4. Narrative Intelligence & GPT Clustering
+GPT clustering analyzes a subset of stories:
+
+Extracts key themes
+
+Labels emergent narratives
+
+Produces summaries
+
+Produces reasons
+
+Endpoints:
+
+/api/admin/analytics/refresh_clusters
+Triggers GPT clustering with:
+
+rate-limit aware backoff
+
+fallback mechanism
+
+diagnostic logging
+
+Diagnostics:
+
+/api/admin/diagnostics/gpt
+Used to debug GPT failures, rate limits, or malformed payloads.
+
+5. System Console (system.html)
+
+A two-column dashboard composed of glass holo cards:
+
+Left Column:
+
+Ingestion Velocity Chart
+Small canvas bar chart via system.js.
+
+Domains Distribution Pie Chart
+
+Sentiment Chart
+
+Right Column:
+
+Cluster Narratives
+Human-readable summaries.
+
+On-Chain Signals
+Volatility, whale volumes, etc.
+
+Recent Episodes
+Short list of last compiled episodes.
+
+Additional:
+
+Floating particle background (same as landing page)
+
+System Architecture slide-in panel
+
+Unified button style (tokn-btn)
+
+6. Episodes Page (episodes.html)
+
+A new page dedicated to showcasing full final ToknNews broadcast episodes.
+
+Card Requirements:
+
+Glass holo cards
+
+Two-per-row grid
+
+Embedded <video controls> players
+
+Episode metadata
+
+Load newest first
+
+Endpoint:
+
+/api/admin/analytics/episodes
+
+Page components:
+
+episodes.css (glass, grid, glow)
+
+episodes.js (fetch episodes + render cards)
+
+7. Secure Control Studio Login
+
+ToknNews uses a two-factor login system:
+
+Requirements:
+
+Password (bcrypt hash)
+
+TOTP verification (pyotp)
+
+Authenticator enrollment QR code
+
+Endpoints:
+
+/api/studio/qrcode
+Returns Base64 QR for enrolling TOTP.
+
+/api/studio/login
+Accepts: {password: "...", token: "123456"}
+Validates both credentials.
+
+TOTP Storage:
+
+Safe location used:
+
+tokn_studio_totp.json
+tokn_studio_password.json
+
+Frontend:
+
+Landing page includes a small hidden login orb button → modal:
+
+Access key (password)
+
+Verification code
+
+Once logged in, user is sent to /studio.html (future no-code studio interface).
+
+8. Frontend Aesthetic Framework
+
+ToknNews uses a unified visual identity:
+
+Global design rules:
+
+Particles float upward from bottom
+
+Glass / holo cards with blue chromatic glow
+
+tokn-btn pill-shaped CTA button used across all pages
+
+Scanline overlays for holographic UI
+
+Blurred neon edges
+
+Consistent motion timing (ease-out / 160ms spawn)
+
+Hero layout centered
+
+Dark anime-tech broadcast world
+
+Pages included:
+
+landing.html
+
+system.html
+
+episodes.html
+
+future studio.html
+
+All share:
+
+background particles
+
+glass panels
+
+cta/buttons
+
+neon illumination
+
+9. Known Workflows & Commands
+Restart API:
+pm2 restart tokn_api --update-env
+
+Restart full stack:
+toknctl restart
+
+Ingest now:
+curl -X POST https://toknnews.com/api/admin/ingest
+
+Run clustering:
+curl -X POST https://toknnews.com/api/admin/analytics/refresh_clusters
+
+GPT diagnostics:
+curl https://toknnews.com/api/admin/diagnostics/gpt
+
+Episode generation:
+curl -X POST https://toknnews.com/api/admin/generate_episode
+
+10. Development Flow for Future Chats
+
+When starting any future session, the assistant should understand:
+
+ToknNews is composed of:
+
+A Flask backend
+
+A JS + HTML frontend with particle-based UX
+
+A secure studio login requirement
+
+A fully modular ingestion → narrative → render → distribution pipeline
+
+A unified visual language
+
+Active GPT clustering
+
+Long-term story memory via StoryBank
+
+System console microcharts
+
+When modifying code:
+
+Use cat replacement commands
+
+Include cd commands for exact file paths
+
+Never remove working modules
+
+Never rename critical endpoints
+
+Work in the context of how adjacent modules rely on dependencies
+
+Maintain the “ToknNews high-tech holo aesthetic”
+
+When designing new features:
+
+Must align with existing UX
+
+Must expose data in a partner/VC-friendly format
+
+Must support autonomous broadcasting
+
+Should build toward the no-code studio vision

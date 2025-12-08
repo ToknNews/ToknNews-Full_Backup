@@ -18,12 +18,12 @@
     <meta name="twitter:description" content="The world's first fully autonomous AI-powered broadcast network.">
     <meta name="twitter:image" content="https://toknnews.com/frontend/assets/img/YT_Banner_Tokn.jpg?v=3">
 
-    <!-- iOS/Android Homescreen Icon -->
+    <!-- Homescreen Icons -->
     <link rel="apple-touch-icon" href="/frontend/assets/img/Tokn_Favicon.png" />
-    <link rel="icon" type="image/png" href="/frontend/assets/img/Tokn_Favicon.png" />
+    <link rel="icon" href="/frontend/assets/img/Tokn_Favicon.png" />
 
-    <link rel="stylesheet" href="/frontend/assets/css/landing.css?v=3" />
-    <script defer src="/frontend/assets/js/landing.js?v=3"></script>
+    <link rel="stylesheet" href="/frontend/assets/css/landing.css?v=4" />
+    <script defer src="/frontend/assets/js/landing.js?v=4"></script>
 </head>
 
 <body>
@@ -31,18 +31,23 @@
 <!-- PARTICLES -->
 <div id="particle-layer"></div>
 
-<!-- SECRET LOGIN TOKEN (TOP RIGHT) -->
+<!-- SECRET LOGIN BUTTON (TOP RIGHT) -->
 <button id="studioLoginBtn" class="token-login-btn">
-    <img src="/frontend/assets/img/Tokn_Button_2.png" alt="login" />
+    <img src="/frontend/assets/img/Tokn_Button_2.png" alt="Login" />
 </button>
 
-<!-- LOGIN POPUP -->
+<!-- LOGIN MODAL -->
 <div id="studioLoginModal" class="studio-modal hidden">
     <div class="studio-modal-content">
-        <button class="studio-close">&times;</button>
+        <button id="closeLogin" class="studio-close">&times;</button>
+
         <h2 class="studio-title">TOKN Control Studio</h2>
-        <input id="studioKey" class="studio-input" placeholder="Access Key" />
-        <button id="studioSubmit" class="studio-submit-btn">Enter</button>
+
+        <input id="studioPassword" class="studio-input" type="password" placeholder="Password" />
+        <input id="studioTotp" class="studio-input" type="number" placeholder="6-digit authentication code" />
+
+        <button id="studioLoginSubmit" class="studio-submit-btn">Enter</button>
+        <p id="studioLoginError" class="studio-error"></p>
     </div>
 </div>
 

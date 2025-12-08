@@ -1,0 +1,30 @@
+
+<div id="studioLoginModal" class="studio-modal hidden">
+    <div class="studio-modal-content">
+        <button class="studio-close" id="closeLogin">&times;</button>
+
+        <h2 class="studio-title">TOKN Control Studio</h2>
+
+        <input 
+            id="studioPassword"
+            class="studio-input"
+            placeholder="Password"
+            type="password"
+        />
+
+        <input 
+            id="studioTotp"
+            class="studio-input"
+            placeholder="Verification Code"
+            inputmode="numeric"
+        />
+
+        <button id="studioLoginSubmit" class="studio-submit-btn">
+            Enter
+        </button>
+
+        <div id="studioLoginError" class="studio-error"></div>
+    </div>
+</div>
+
+eof

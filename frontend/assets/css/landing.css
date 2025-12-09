@@ -8,7 +8,7 @@ body {
     color: #fff;
 }
 
-/* PARTICLES */
+/* PARTICLE LAYER */
 #particle-layer {
     position: fixed;
     inset: 0;
@@ -16,20 +16,21 @@ body {
     z-index: 1;
 }
 
+/* TOKN PARTICLE (System Console Variant) */
 .particle {
     position: absolute;
     bottom: -20px;
     background: rgba(45,115,255,0.8);
     border-radius: 50%;
-    opacity: 0.7;
-    filter: blur(1px);
+    opacity: 0.55;
+    filter: blur(1.3px);
     animation: floatUp linear forwards;
 }
 
 @keyframes floatUp {
-    0%   { transform: translateY(0); opacity: 0.4; }
-    50%  { opacity: 0.9; }
-    100% { transform: translateY(-120vh); opacity: 0; }
+    0%   { transform: translateY(0) translateX(0); opacity: 0.35; }
+    50%  { opacity: 0.75; }
+    100% { transform: translateY(-120vh) translateX(-15px); opacity: 0; }
 }
 
 /* HERO */
@@ -53,34 +54,72 @@ body {
     color: rgba(180,215,255,0.9);
 }
 
-/* CTA BUTTON (GLOBAL TOKN STYLE) */
+/* CINEMATIC TOKN HOLOGRAPHIC CTA (S2 VARIANT) */
 .cta-button {
+    position: relative;
     margin-top: 32px;
     padding: 16px 46px;
     font-size: 20px;
-    border-radius: 999px;
-    border: 1px solid rgba(80,140,255,0.6);
-    background: linear-gradient(135deg,
-        rgba(60,120,255,0.35) 0%,
-        rgba(15,60,200,0.7) 45%,
-        rgba(90,150,255,0.35) 100%);
+    border-radius: 40px;
+    border: 1px solid rgba(80,140,255,0.45);
+
+    background: linear-gradient(
+        135deg,
+        rgba(60,120,255,0.28) 0%,
+        rgba(15,60,200,0.55) 45%,
+        rgba(90,150,255,0.28) 100%
+    );
+
     box-shadow:
-        0 0 20px rgba(45,115,255,0.4),
-        inset 0 0 12px rgba(45,115,255,0.5);
+        0 0 16px rgba(45,115,255,0.3),
+        inset 0 0 10px rgba(45,115,255,0.35);
+
     color: white;
     font-weight: 500;
     cursor: pointer;
-    transition: 0.2s ease;
+    z-index: 3;
+
+    overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+/* SOFT CINEMATIC SHIMMER (S2) */
+.cta-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -160%;
+    width: 150%;
+    height: 100%;
+
+    background: linear-gradient(
+        120deg,
+        transparent 0%,
+        rgba(255,255,255,0.22) 50%,
+        transparent 100%
+    );
+
+    opacity: 0.55;
+    transform: skewX(-25deg);
+
+    animation: ctaSweep 5.8s ease-in-out infinite;
+}
+
+@keyframes ctaSweep {
+    0%   { left: -160%; opacity: 0; }
+    35%  { opacity: 0.5; }
+    55%  { left: 150%; opacity: 0.35; }
+    100% { left: 150%; opacity: 0; }
 }
 
 .cta-button:hover {
     transform: scale(1.06);
     box-shadow:
-        0 0 30px rgba(45,115,255,0.7),
-        inset 0 0 16px rgba(45,115,255,0.7);
+        0 0 26px rgba(45,115,255,0.65),
+        inset 0 0 14px rgba(45,115,255,0.65);
 }
 
-/* SECRET LOGIN TOKEN BUTTON */
+/* SECRET LOGIN TOKEN */
 .token-login-btn {
     position: fixed;
     top: 16px;
@@ -100,7 +139,7 @@ body {
     opacity: 0.55;
 }
 
-/* LOGIN MODAL */
+/* LOGIN & SETUP MODALS */
 .studio-modal {
     position: fixed;
     inset: 0;
@@ -170,3 +209,8 @@ body {
 .studio-submit-btn:hover {
     transform: scale(1.06);
 }
+
+/* WIZARD STEPS */
+.hidden { display: none; }
+.wizard-qr-image { width: 180px; margin-top: 12px; }
+

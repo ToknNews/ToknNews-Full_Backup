@@ -1,17 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>TOKN Studio TOTP Setup</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TOKN Studio — QR Enrollment</title>
+
+    <link rel="stylesheet" href="/frontend/assets/css/system.css?v=6" />
+
+    <style>
+        /* QR size reduced to fit above fold */
+        #qr {
+            width: 180px;
+            height: 180px;
+            padding: 8px;
+            background: #fff;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        /* Slightly tighter card padding for vertical fit */
+        .sys-card {
+            padding: 20px 24px !important;
+        }
+
+        /* Optional: slightly reduce top margin from header to grid */
+        .sys-grid {
+            margin-top: 20px !important;
+        }
+    </style>
 </head>
-<body style="background:#000; color:#fff; font-family:Inter,Arial; text-align:center; padding-top:40px;">
-<h2>Scan to Enroll Tokn Control Studio</h2>
-<p>Open Google Authenticator (or Authy/1Password) → Add account → Scan this QR.</p>
-<img id="qr" style="margin-top:30px; box-shadow:0 0 24px #0af; border-radius:12px;" />
+<body>
+
+<!-- PARTICLE LAYER -->
+<div id="particle-layer"></div>
+
+<!-- HEADER (EXACT MATCH TO SYSTEM PAGE) -->
+<header class="sys-header">
+    <img src="/frontend/assets/img/Tokn_Logo_Main_4.png" class="sys-logo" />
+    <h1 class="sys-title">Studio Access</h1>
+</header>
+
+<!-- SINGLE GLASS CARD CENTERED LIKE OTHER PANELS -->
+<section class="sys-grid">
+    <div class="sys-col">
+        <div class="sys-card">
+            <h2>Scan Authentication Code</h2>
+
+            <img id="qr" src="" alt="QR Code" />
+
+            <p style="margin-top: 12px;">
+                Open Google Authenticator or similar app.<br/>
+                Scan this code to enroll your device.
+            </p>
+        </div>
+    </div>
+</section>
+
 <script>
-fetch("/api/studio/qrcode")
-  .then(r => r.json())
-  .then(data => { document.getElementById('qr').src = data.qr; });
+async function loadQR() {
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get("user");
+    if (!user) {
+        alert("Missing ?user=username");
+        return;
+    }
+    const res = await fetch(`/api/studio/users/qrcode/${user}`);
+    const data = await res.json();
+    if (!data.ok) {
+        alert("Error loading QR: " + (data.error?.message || "Unknown"));
+        return;
+    }
+    document.getElementById("qr").src = data.qr;
+}
+loadQR();
 </script>
+
 </body>
 </html>

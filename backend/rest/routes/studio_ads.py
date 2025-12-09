@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""
+TOKN Control Studio — Ad Manager Backend (LLM-driven)
+Supports:
+- Ad copy generation (persona-aware)
+- Queueing ads for next episode
+- Saving evergreen ads to StoryBank
+- Listing evergreen ads
+- AD-POLICY C (recommended personas + optional full list)
+- ADT1 tone presets
+- LateNight Mode
+"""
+
+import json
+import time
+from pathlib import Path
+from flask import Blueprint, request, jsonify
+from openai import OpenAI
+
+from backend.internal.security.totp import load_state
+from backend.script_engine.character_brain.persona_loader import load_persona
+
+ads_bp = Blueprint("studio_ads", __name__, url_prefix="/api/studio/ads")
+client = OpenAI()
+
+# ---------------------------------------------------
+# File paths
+# ---------------------------------------------------
+QUEUE_PATH = Path("/opt/toknnews/data/pipeline/queued_ads.json")
+STORYBANK_PATH = Path("/opt/toknnews/data/storybank/storybank.json")
+STORYBANK_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+# ---------------------------------------------------
+# Allowed/advised personas
+# ---------------------------------------------------
+RECOMMENDED_PERSONAS = ["vega", "penny", "chip", "bond"]
+ALL_PERSONAS = [
+    "chip", "reef", "lawson", "bond", "ivy", "cash",
+    "ledger", "penny", "bitsy", "vega"
+]
+
+# ---------------------------------------------------
+# Tone presets (ADT1)
+# ---------------------------------------------------
+TONE_PRESETS = {
+    "neutral_broadcast": """
+Tone: professional, steady, neutral.
+No slang. No hype. Clear and trustworthy.
+""",
+
+    "warm_relational": """
+Tone: warm, friendly, audience-connecting.
+Conversational. Human. Light empathy.
+""",
+
+    "booth_voice": """
+Tone: deep, rhythmic, iconic booth sound.
+Shorter lines. Smooth delivery.
+""",
+
+    "energetic": """
+Tone: upbeat, high-energy, dynamic.
+Great for promo-style reads or younger audiences.
+""",
+
+    "late_night": """
+Tone: lightly humorous, playful, relaxed.
+Slight edge allowed. Persona-consistent.
+""",
+
+    "serious_disclosure": """
+Tone: serious, regulatory, precise.
+No humor. Compliance-first.
+"""
+}
+
+# ---------------------------------------------------
+# Model selection (same as segment engine)
+# ---------------------------------------------------
+MODEL_ORDER = [
+    "gpt-4o-2024-08-06",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-o",
+    "gpt-4.1",
+    "gpt-4.1-mini"
+]
+
+def select_model(requested):
+    if requested == "auto":
+        try_list = MODEL_ORDER
+    else:
+        try_list = [requested] + [m for m in MODEL_ORDER if m != requested]
+
+    for model in try_list:
+        try:
+            client.models.retrieve(model)
+            return model
+        except:
+            continue
+
+    return "gpt-4o-mini"
+
+
+# ---------------------------------------------------
+# Guard
+# ---------------------------------------------------
+def guard():
+    if load_state() != "SETUP_COMPLETE":
+        return False, jsonify({"ok": False, "error": {"message": "Setup incomplete"}}), 403
+    return True, None, None
+
+
+# ---------------------------------------------------
+# Latenight overrides
+# ---------------------------------------------------
+def apply_latenight_overrides(persona, data, ln_mode):
+    if not ln_mode:
+        return data
+
+    enriched = data.copy()
+    if "latenight" in data:
+        extra = data["latenight"].get("phrasing_add", [])
+        enriched["persona"] = data.get("persona", []) + [f"(LateNight) {x}" for x in extra]
+        return enriched
+
+    fallback = [
+        "(LateNight) tone: playful, expressive.",
+        "(LateNight) persona allowed mild humor.",
+        "(LateNight) relaxed delivery."
+    ]
+    enriched["persona"] = data.get("persona", []) + fallback
+    return enriched
+
+
+# ---------------------------------------------------
+# Build ad prompt
+# ---------------------------------------------------
+def build_ad_prompt(persona, persona_data, sponsor, product, tone_key):
+    dna = "\n".join([f"* {p}" for p in persona_data.get("persona", [])])
+    tone_rules = TONE_PRESETS.get(tone_key, "")
+
+    return (
+        f"You are writing a SPONSOR AD COPY for ToknNews.\n\n"
+        f"Sponsor: {sponsor}\n"
+        f"Product: {product}\n\n"
+        f"Persona reading the ad: {persona}\n\n"
+        f"Persona DNA:\n{dna}\n\n"
+        f"Ad Tone ({tone_key}):\n{tone_rules}\n\n"
+        "Rules:\n"
+        "- 3 to 6 sentences.\n"
+        "- Must sound formatted for broadcast.\n"
+        "- Keep the read crisp and persona-accurate.\n"
+        "- No hype beyond broadcast norms.\n"
+        "- No crypto slang.\n"
+        "- If disclosures are needed, end with: 'Terms and conditions may apply.'\n"
+    )
+
+
+# ---------------------------------------------------
+# (1) Generate Ad Copy
+# ---------------------------------------------------
+@ads_bp.post("/generate")
+def generate_ad():
+    ok, resp, code = guard()
+    if not ok:
+        return resp, code
+
+    data = request.json or {}
+
+    sponsor   = data.get("sponsor", "").strip()
+    product   = data.get("product", "").strip()
+    persona   = data.get("persona", "vega").lower()
+    tone      = data.get("tone", "neutral_broadcast")
+    model_in  = data.get("model", "auto")
+    ln_mode   = data.get("latenight", False)
+
+    persona_data = load_persona(persona)
+    persona_data = apply_latenight_overrides(persona, persona_data, ln_mode)
+    model = select_model(model_in)
+
+    prompt = build_ad_prompt(persona, persona_data, sponsor, product, tone)
+
+    try:
+        out = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300
+        )
+        script = out.choices[0].message.content
+
+        return jsonify({
+            "ok": True,
+            "script": script,
+            "persona": persona,
+            "model_used": model
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ---------------------------------------------------
+# (2) Queue Ad → Next Episode
+# ---------------------------------------------------
+@ads_bp.post("/queue")
+def queue_ad():
+    ok, resp, code = guard()
+    if not ok:
+        return resp, code
+
+    data = request.json or {}
+
+    entry = {
+        "id": f"AD-{int(time.time())}",
+        "sponsor": data.get("sponsor"),
+        "persona": data.get("persona"),
+        "script": data.get("script"),
+        "created": time.time(),
+        "type": "ad"
+    }
+
+    if not QUEUE_PATH.exists():
+        QUEUE_PATH.write_text(json.dumps([entry], indent=2))
+    else:
+        arr = json.loads(QUEUE_PATH.read_text())
+        arr.append(entry)
+        QUEUE_PATH.write_text(json.dumps(arr, indent=2))
+
+    return jsonify({"ok": True, "message": "Ad queued for next episode."})
+
+
+# ---------------------------------------------------
+# (3) Save Evergreen Ad → StoryBank
+# ---------------------------------------------------
+@ads_bp.post("/save")
+def save_ad():
+    ok, resp, code = guard()
+    if not ok:
+        return resp, code
+
+    data = request.json or {}
+
+    entry = {
+        "id": f"SB-AD-{int(time.time())}",
+        "type": "ad",
+        "sponsor": data.get("sponsor"),
+        "persona": data.get("persona"),
+        "script": data.get("script"),
+        "tags": data.get("tags", ["ad"]),
+        "priority": data.get("priority", 5),
+        "created": time.time()
+    }
+
+    if not STORYBANK_PATH.exists():
+        STORYBANK_PATH.write_text(json.dumps({"segments": [entry]}, indent=2))
+    else:
+        content = json.loads(STORYBANK_PATH.read_text())
+        content["segments"].append(entry)
+        STORYBANK_PATH.write_text(json.dumps(content, indent=2))
+
+    return jsonify({"ok": True, "message": "Ad saved to StoryBank."})
+
+
+# ---------------------------------------------------
+# (4) List evergreen ads
+# ---------------------------------------------------
+@ads_bp.get("/list")
+def list_ads():
+    ok, resp, code = guard()
+    if not ok:
+        return resp, code
+
+    if not STORYBANK_PATH.exists():
+        return jsonify({"ok": True, "ads": []})
+
+    sb = json.loads(STORYBANK_PATH.read_text())
+    ads = [s for s in sb.get("segments", []) if s.get("type") == "ad"]
+
+    return jsonify({"ok": True, "ads": ads})

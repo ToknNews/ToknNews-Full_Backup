@@ -17,6 +17,7 @@ from backend.rest.routes.ingest_v2.enrich_v2 import enrich_item
 from backend.rest.routes.ingest_v2.stage3_enricher import stage3_enrich
 from backend.rest.routes.ingest_v2.aggregate_ingestion import aggregate_items
 from .safe_clusters_patch import safe_generate_clusters_with_backoff
+from backend.rest.routes.ingest_v2.onchain_synth import synthesize_onchain_segment
 
 # -------------------------------
 # CORE STORY ENGINE
@@ -162,6 +163,19 @@ def run_ingestion():
             meta_full.append(meta_enrich(s))
         else:
             meta_full.append(s)
+
+    # =========================================
+    # NEW: On-Chain Synth — unify onchain signals into ONE segment
+    # =========================================
+    try:
+        onchain_story = synthesize_onchain_segment(meta_full, show_mode="NEWS")
+        if onchain_story:
+            meta_full.append(onchain_story)
+            print("[INGEST] On-chain synth segment added.")
+        else:
+            print("[INGEST] On-chain synth skipped (insufficient signal).")
+    except Exception as e:
+        print("[INGEST] On-chain synth ERROR:", e)
 
     # STORYBANK
     append_stories(meta_full)

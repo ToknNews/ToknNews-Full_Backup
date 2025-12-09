@@ -1,38 +1,63 @@
 #!/usr/bin/env python3
 """
-episode_runner.py
-ToknNews V2 — Episode Runtime Engine with:
- - Show Mode Routing
- - Story Cap
- - Hybrid Runtime Estimation
- - Audio Disabled (until V2 Audio Engine is rebuilt)
+episode_runner.py — ToknNews Episode Orchestrator v5
+-----------------------------------------------------
+
+Responsibilities:
+- Load fresh enriched stories (or cached stories)
+- Apply show-mode routing (NEWS, BREAKING, CHAOS, LATE_NIGHT, etc.)
+- Build timeline via TimelineBuilder v5
+- Create audio via TTS (only after approval)
+- Create Unreal cue packages
+- Support:
+    • Manual generation (Studio)
+    • Approval gating (“Degen Approved”)
+    • Autonomous 24/7 mode
+    • Breaking-news instant episodes
 """
 
 import os, time, json, uuid
 from pathlib import Path
 
 from backend.rest.routes.ingest_v2.ingest_controller import run_ingestion
-from backend.script_engine.show_modes.router import determine_show_mode
+from backend.script_engine.persona.pd_engine_v45 import pd_engine
 from backend.script_engine.persona.timeline_builder import build_timeline
-
-BASE_DIR = "/opt/toknnews"
-EPISODE_CACHE = f"{BASE_DIR}/data/rolling_stories.json"
-EPISODE_DIR   = Path(f"{BASE_DIR}/data/episodes")
-BLOCK_DIR     = Path(f"{BASE_DIR}/data/blocks")
-
-EPISODE_DIR.mkdir(parents=True, exist_ok=True)
-BLOCK_DIR.mkdir(parents=True, exist_ok=True)
+from backend.script_engine.audio.audio_block_renderer import render_audio_blocks
+from backend.render_controller import render_episode
+from backend.runtime.vault_loader import load_secrets
 
 
 # -------------------------------------------------------
-# Saving Utilities
+# DIRECTORIES
+# -------------------------------------------------------
+
+BASE_DIR = "/opt/toknnews"
+EPISODE_DIR = Path(f"{BASE_DIR}/data/episodes")
+BLOCK_DIR   = Path(f"{BASE_DIR}/data/blocks")
+UE_DIR      = Path(f"{BASE_DIR}/data/unreal")
+
+EPISODE_DIR.mkdir(parents=True, exist_ok=True)
+BLOCK_DIR.mkdir(parents=True, exist_ok=True)
+UE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# -------------------------------------------------------
+# SECRETS + TOGGLES
+# -------------------------------------------------------
+
+_secrets   = load_secrets()
+AUTO_MODE  = os.getenv("AUTONOMOUS_MODE", "false").lower() == "true"
+ENABLE_TTS = os.getenv("ENABLE_TTS", "false").lower() == "true"
+
+
+# -------------------------------------------------------
+# SAVE UTILITIES
 # -------------------------------------------------------
 
 def save_blocks_json(episode_id, blocks):
     path = BLOCK_DIR / f"{episode_id}_blocks.json"
     path.write_text(json.dumps(blocks, indent=2))
     return str(path)
-
 
 def save_episode_metadata(episode_id, metadata):
     path = EPISODE_DIR / f"{episode_id}_meta.json"
@@ -41,104 +66,141 @@ def save_episode_metadata(episode_id, metadata):
 
 
 # -------------------------------------------------------
-# Main Episode Runner
+# APPROVAL STATE (Studio)
 # -------------------------------------------------------
 
-def run_episode(
-    episode_id=None,
-    skip_ingest=False,
-    skip_audio=False,    # Ignored: audio is disabled
-    daypart="evening",
-    show_mode="AUTO",
-    voice_map=None
-):
-    print("\n============================")
-    print("[EpisodeRunner] Starting episode")
-    print("============================\n")
+def save_pending_script(episode_id, blocks):
+    """Saved before approval. Not rendered yet."""
+    preview_path = EPISODE_DIR / f"{episode_id}_preview.json"
+    preview_path.write_text(json.dumps(blocks, indent=2))
+    return str(preview_path)
 
-    # ---------------------------------------------------
-    # LOAD OR INGEST
-    # ---------------------------------------------------
+
+# -------------------------------------------------------
+# MAIN EPISODE GENERATION (NO AUDIO YET)
+# -------------------------------------------------------
+
+def generate_episode_script(episode_id=None, skip_ingest=False):
+    """
+    Returns:
+        {
+           episode_id: ...,
+           mode: ...,
+           blocks: [...],
+           metadata_file: ...,
+           preview_file: ...
+        }
+    """
+
+    print("\n=== [EpisodeRunner v5] GENERATING SCRIPT ===")
+
+    # ------- Load or Ingest -------
     if skip_ingest:
-        print("[EpisodeRunner] skip_ingest=True → loading cached stories…")
-        raw = json.load(open(EPISODE_CACHE, "r"))
+        print("[ER] Using cached stories (skip_ingest=True)")
+        cache_path = f"{BASE_DIR}/data/rolling_stories.json"
+        raw = json.load(open(cache_path, "r"))
         stories = raw if isinstance(raw, list) else raw.get("rundown", [])
-        if not stories:
-            print("[EpisodeRunner] ERROR: No cached stories.")
-            return None
     else:
-        print("[EpisodeRunner] skip_ingest=False → performing ingestion")
+        print("[ER] Ingesting fresh stories…")
         stories = run_ingestion()
 
-    print(f"[EpisodeRunner] Story Count: {len(stories)}")
+    if not stories:
+        print("[ER] ERROR: No stories available.")
+        return None
 
-    # ---------------------------------------------------
-    # SHOW MODE ROUTER
-    # ---------------------------------------------------
-    router_output = determine_show_mode(stories)
-    mode = router_output["mode"]
-    cap  = router_output["story_cap"]
+    # ------- Show Mode Router -------
+    pd_out = pd_engine(stories)
+    mode   = pd_out["mode"]
+    cap    = pd_out["story_cap"]
+    used   = stories[:cap]
 
-    print(f"[EpisodeRunner] Mode: {mode} (cap={cap}, override={router_output['override']})")
-
-    # Cap stories BEFORE PD & timeline
-    selected_stories = stories[:cap]
-
-    # Episode ID
     episode_id = episode_id or f"ep_{uuid.uuid4().hex[:8]}"
 
-    # ---------------------------------------------------
-    # TIMELINE BUILD
-    # ---------------------------------------------------
-    pkg = build_timeline(
-        selected_stories,
-        daypart=daypart,
-        show_mode=mode,
-        voice_map=voice_map
-    )
+    # ------- Build Timeline -------
+    timeline = build_timeline(used, show_mode=mode)
+    blocks       = timeline["blocks"]
+    audio_blocks = timeline["audio_blocks"]
+    runtime_sec  = timeline["estimated_runtime_sec"]
 
-    blocks       = pkg["blocks"]
-    audio_blocks = pkg["audio_blocks"]
-    est_runtime  = pkg["estimated_runtime_sec"]
+    print(f"[ER] Script Blocks: {len(blocks)}")
+    print(f"[ER] Estimated Runtime: {round(runtime_sec/60,2)} minutes")
+    print(f"[ER] Mode: {mode} (cap={cap})")
 
-    print(f"[EpisodeRunner] Blocks: {len(blocks)}")
-    print(f"[EpisodeRunner] Estimated Runtime: {round(est_runtime/60, 2)} minutes")
+    # ------- Save Script Preview -------
+    preview_file = save_pending_script(episode_id, blocks)
 
-    # ---------------------------------------------------
-    # AUDIO DISABLED (V2 Audio Engine coming later)
-    # ---------------------------------------------------
-    final_audio_path = None
-    print("[EpisodeRunner] AUDIO DISABLED — skipping all audio rendering.")
-
-    # ---------------------------------------------------
-    # SAVE FILES
-    # ---------------------------------------------------
-    blocks_path = save_blocks_json(episode_id, blocks)
-    meta_path   = save_episode_metadata(episode_id, {
+    # ------- Save Metadata -------
+    metadata_file = save_episode_metadata(episode_id, {
         "episode_id": episode_id,
-        "timestamp": time.time(),
         "mode": mode,
         "story_cap": cap,
         "story_count": len(stories),
-        "used_story_count": len(selected_stories),
-        "blocks_file": blocks_path,
-        "estimated_runtime_sec": est_runtime,
-        "router": router_output
+        "used_story_count": len(used),
+        "runtime_sec": runtime_sec,
+        "preview_file": preview_file,
+        "audio": None,
     })
-
-    print("\n[EpisodeRunner] Episode complete.\n")
 
     return {
         "episode_id": episode_id,
         "mode": mode,
-        "stories_used": len(selected_stories),
         "blocks": blocks,
-        "metadata_file": meta_path,
-        "blocks_file": blocks_path,
-        "estimated_runtime_sec": est_runtime,
-        "audio": None
+        "metadata_file": metadata_file,
+        "preview_file": preview_file,
+        "audio_blocks": audio_blocks,
     }
 
 
+# -------------------------------------------------------
+# APPROVAL: TRIGGER AUDIO + RENDER + UE PACKAGE
+# -------------------------------------------------------
+
+def approve_and_render(episode_id, audio_blocks):
+    """
+    Called after manual approval (“Degen Approved”)
+    """
+
+    print(f"\n=== [EpisodeRunner v5] APPROVED → Rendering Episode {episode_id} ===")
+
+    # ----------- AUDIO RENDERING -----------
+    if ENABLE_TTS:
+        print("[ER] TTS ENABLED → Rendering audio…")
+        final_audio = render_audio_blocks(episode_id, audio_blocks)
+    else:
+        print("[ER] TTS DISABLED → Skipping audio.")
+        final_audio = None
+
+    # ----------- VIDEO / UE PACKAGE -----------
+    mp4_path = render_episode(audio_blocks, final_audio, episode_id, mode="unreal")
+
+    print(f"[ER] RENDER COMPLETE → {mp4_path}\n")
+
+    return {
+        "episode_id": episode_id,
+        "audio": final_audio,
+        "video": mp4_path,
+    }
+
+
+# -------------------------------------------------------
+# AUTONOMOUS 24/7 LOOP
+# -------------------------------------------------------
+
+def autonomous_loop():
+    print("\n=== ToknNews Autonomous 24/7 Mode Enabled ===")
+
+    while True:
+        ep = generate_episode_script()
+
+        # no approval needed in autonomous mode
+        approve_and_render(ep["episode_id"], ep["audio_blocks"])
+
+        print("[ER] Sleeping before next cycle…\n")
+        time.sleep(1200)  # 20 minutes
+
+
 if __name__ == "__main__":
-    run_episode()
+    if AUTO_MODE:
+        autonomous_loop()
+    else:
+        print("EpisodeRunner v5 ready (manual mode).")

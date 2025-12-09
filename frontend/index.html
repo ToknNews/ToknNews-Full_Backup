@@ -5,25 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ToknNews</title>
 
+    <!-- Primary Meta -->
+    <meta name="description" content="ToknNews — The world's first fully autonomous AI-powered broadcast network, delivering real-time AI journalism, insights, and market intelligence." />
+
     <!-- OpenGraph -->
     <meta property="og:title" content="ToknNews — Autonomous AI Broadcast Network">
     <meta property="og:description" content="The world's first fully autonomous AI-powered broadcast network.">
     <meta property="og:image" content="https://toknnews.com/frontend/assets/img/YT_Banner_Tokn.jpg?v=3">
-    <meta property="og:url" content="https://toknnews.com">
+    <meta property="og:url" content="https://toknnews.com/">
     <meta property="og:type" content="website">
 
-    <!-- Twitter -->
+    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ToknNews — Autonomous AI Broadcast Network">
     <meta name="twitter:description" content="The world's first fully autonomous AI-powered broadcast network.">
     <meta name="twitter:image" content="https://toknnews.com/frontend/assets/img/YT_Banner_Tokn.jpg?v=3">
+    <meta name="twitter:url" content="https://toknnews.com/">
 
-    <!-- Homescreen Icons -->
+    <!-- Icons -->
     <link rel="apple-touch-icon" href="/frontend/assets/img/Tokn_Favicon.png" />
     <link rel="icon" href="/frontend/assets/img/Tokn_Favicon.png" />
 
-    <link rel="stylesheet" href="/frontend/assets/css/landing.css?v=4" />
-    <script defer src="/frontend/assets/js/landing.js?v=4"></script>
+    <!-- CSS + JS -->
+    <link rel="stylesheet" href="/frontend/assets/css/landing.css?v=5" />
+    <script defer src="/frontend/assets/js/landing.js?v=5"></script>
 </head>
 
 <body>
@@ -31,27 +36,41 @@
 <!-- PARTICLES -->
 <div id="particle-layer"></div>
 
-<!-- SECRET LOGIN BUTTON (TOP RIGHT) -->
+<!-- SECRET LOGIN BUTTON -->
 <button id="studioLoginBtn" class="token-login-btn">
     <img src="/frontend/assets/img/Tokn_Button_2.png" alt="Login" />
 </button>
 
-<!-- LOGIN MODAL -->
+<!-- ========================================= -->
+<!-- MULTI-USER LOGIN MODAL (A + C IMPLEMENTED) -->
+<!-- ========================================= -->
 <div id="studioLoginModal" class="studio-modal hidden">
     <div class="studio-modal-content">
         <button id="closeLogin" class="studio-close">&times;</button>
 
         <h2 class="studio-title">TOKN Control Studio</h2>
 
-        <input id="studioPassword" class="studio-input" type="password" placeholder="Password" />
-        <input id="studioTotp" class="studio-input" type="number" placeholder="6-digit authentication code" />
+        <input id="studioUser"
+               class="studio-input"
+               type="text"
+               placeholder="Operator Username" />
+
+        <input id="studioPassword"
+               class="studio-input"
+               type="password"
+               placeholder="Password" />
+
+        <input id="studioTotp"
+               class="studio-input"
+               type="number"
+               placeholder="6-digit authentication code" />
 
         <button id="studioLoginSubmit" class="studio-submit-btn">Enter</button>
         <p id="studioLoginError" class="studio-error"></p>
     </div>
 </div>
 
-<!-- HERO -->
+<!-- HERO SECTION -->
 <header class="hero">
     <img src="/frontend/assets/img/Tokn_Logo_Main_4.png" class="hero-logo" />
     <p class="hero-tagline">Autonomous AI Broadcast Network</p>

@@ -1,86 +1,148 @@
 #!/usr/bin/env python3
 """
-TOKN Control Studio — Secure Login (Password + TOTP)
+TOKN Control Studio — Multi-User Login & User Management API
 """
 
-import json
-from pathlib import Path
-from flask import Blueprint, request, jsonify
-from datetime import datetime
-import bcrypt
-import pyotp
-import qrcode
 import base64
+import json
 from io import BytesIO
+from flask import Blueprint, request, jsonify
+import qrcode
+
+from backend.internal.security.users import (
+    load_users,
+    create_user,
+    disable_user,
+    verify_user_credentials,
+    get_user_qr_uri,
+)
 
 studio_bp = Blueprint("studio", __name__, url_prefix="/api/studio")
 
-SECRETS_DIR = Path("/opt/toknnews/data/secrets")
-PASSWORD_FILE = SECRETS_DIR / "tokn_studio_password.json"
-TOTP_FILE = SECRETS_DIR / "tokn_studio_totp.json"
+
+# ============================================================
+# LOGIN — MULTI-USER
+# ============================================================
+
+@studio_bp.post("/login")
+def login():
+    data = request.json or {}
+
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    token    = data.get("token", "").strip()
+
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    result = verify_user_credentials(username, password, token, ip)
+    return jsonify(result)
 
 
-def load_password_hash():
-    if not PASSWORD_FILE.exists():
-        return None
+# ============================================================
+# ADMIN: CREATE OPERATOR
+# ============================================================
 
-    try:
-        data = json.loads(PASSWORD_FILE.read_text())
-        return data.get("password_hash")
-    except:
-        return None
+@studio_bp.post("/users/create")
+def create_operator():
+    data = request.json or {}
+
+    # BOOTSTRAP: If no users exist, allow creation without admin check
+    users = load_users()
+    if len(users.get("users", [])) == 0:
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+        if not username or not password:
+            return jsonify({"ok": False, "error": {"message": "Username & password required for bootstrap"}}), 400
+
+        result = create_user(username, password)
+        return jsonify(result)
+
+    # NORMAL MODE (after admin exists)
+    admin_user = data.get("admin_username", "")
+    admin_pw   = data.get("admin_password", "")
+    admin_token = data.get("admin_token", "")
+
+    # Verify admin identity
+    check = verify_user_credentials(admin_user, admin_pw, admin_token)
+    if not check.get("ok"):
+        return jsonify({"ok": False, "error": {"message": "Admin authentication failed."}}), 403
+
+    if admin_user != "admin":
+        return jsonify({"ok": False, "error": {"message": "Only admin may create users."}}), 403
+
+    # Create user normally
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+
+    result = create_user(username, password)
+    return jsonify(result)
 
 
-def load_totp_secret():
-    if not TOTP_FILE.exists():
-        # Generate new secret if missing
-        secret = pyotp.random_base32()
-        TOTP_FILE.write_text(json.dumps({"secret": secret}, indent=2))
-        return secret
+# ============================================================
+# ADMIN: DISABLE USER
+# ============================================================
 
-    data = json.loads(TOTP_FILE.read_text())
-    return data["secret"]
+@studio_bp.post("/users/disable")
+def disable_operator():
+    data = request.json or {}
+
+    admin_user = data.get("admin_username", "")
+    admin_pw   = data.get("admin_password", "")
+    admin_token = data.get("admin_token", "")
+
+    # Verify admin first
+    check = verify_user_credentials(admin_user, admin_pw, admin_token)
+    if not check.get("ok"):
+        return jsonify({"ok": False, "error": {"message": "Admin authentication failed."}}), 403
+
+    if admin_user != "admin":
+        return jsonify({"ok": False, "error": {"message": "Only admin may disable users."}}), 403
+
+    target = data.get("username", "").strip()
+    result = disable_user(target)
+    return jsonify(result)
 
 
-@studio_bp.get("/qrcode")
-def generate_qr():
-    """Returns QR code for enrolling TOKN Studio TOTP."""
-    secret = load_totp_secret()
-    issuer = "TOKN Control Studio"
-    label = "admin@tokn"
-    uri = pyotp.totp.TOTP(secret).provisioning_uri(label, issuer_name=issuer)
+# ============================================================
+# LIST USERS (ADMIN ONLY)
+# ============================================================
+
+@studio_bp.get("/users/list")
+def list_users():
+    auth_header = request.headers.get("X-Studio-Admin", "")
+
+    if auth_header != "admin":
+        return jsonify({"ok": False, "error": {"message": "Unauthorized"}}), 403
+
+    data = load_users()
+    # Never return password hashes
+    out = []
+    for u in data["users"]:
+        out.append({
+            "username": u["username"],
+            "active": u.get("active", False),
+            "created": u.get("created"),
+        })
+    return jsonify({"ok": True, "users": out})
+
+
+# ============================================================
+# QR CODE FOR SPECIFIC USER
+# ============================================================
+
+@studio_bp.get("/users/qrcode/<username>")
+def user_qrcode(username):
+    result = get_user_qr_uri(username)
+    if not result.get("ok"):
+        return jsonify(result), 404
+
+    uri = result["uri"]
 
     qr = qrcode.make(uri)
     buf = BytesIO()
     qr.save(buf, format="PNG")
     b64 = base64.b64encode(buf.getvalue()).decode()
 
-    return jsonify({"qr": f"data:image/png;base64,{b64}"})
+    return jsonify({"ok": True, "qr": f"data:image/png;base64,{b64}"})
 
 
-@studio_bp.post("/login")
-def login():
-    data = request.json or {}
-    password = data.get("password")
-    token = data.get("token")
-
-    if not password or not token:
-        return jsonify({"ok": False, "error": "Missing credentials"}), 400
-
-    # --- Validate password ---
-    stored_hash = load_password_hash()
-    if not stored_hash:
-        return jsonify({"ok": False, "error": "Password not set"}), 500
-
-    if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
-        return jsonify({"ok": False, "error": "Invalid password"}), 403
-
-    # --- Validate TOTP ---
-    secret = load_totp_secret()
-    totp = pyotp.TOTP(secret)
-
-    if not totp.verify(token, valid_window=1):
-        return jsonify({"ok": False, "error": "Invalid verification code"}), 403
-
-    # If both pass:
-    return jsonify({"ok": True, "message": "Login successful"})

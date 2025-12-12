@@ -81,7 +81,7 @@ OUTPUT JSON ONLY:
 
     try:
         response = client.responses.create(
-            model="gpt-4o-mini-2024-07-18",
+            model="gpt-4o-mini",
             input=prompt,
             max_output_tokens=1400,
         )

@@ -1,37 +1,96 @@
+#!/usr/bin/env python3
+"""
+safe_clusters_patch.py — Hybrid Clustering Controller
+Option C (Production Safe):
+
+• Rule-based clustering is DEFAULT
+• GPT semantic clustering is OPTIONAL
+• Studio toggle controls behavior
+• NO ingest blocking
+• NO fragile imports
+"""
+
+import os
 import time
-from backend.script_engine.analytics_cluster_gpt_diagnostics import generate_clusters
+import json
+from typing import List, Dict, Any
 
-def safe_generate_clusters_with_backoff(stories):
+# Flag written by Studio toggle
+GPT_FLAG = "/opt/toknnews/data/enable_gpt_clusters.json"
+
+
+# --------------------------------------------------
+# TOGGLE CHECK
+# --------------------------------------------------
+
+def _gpt_enabled() -> bool:
+    if not os.path.exists(GPT_FLAG):
+        return False
+    try:
+        return bool(json.load(open(GPT_FLAG)).get("enabled", False))
+    except Exception:
+        return False
+
+
+# --------------------------------------------------
+# RULE-BASED CLUSTERING (INLINE, GUARANTEED)
+# --------------------------------------------------
+
+def _rule_based_clusters(stories: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    GPT cluster runner with retry backoff:
-      Attempt 1 → wait 3 seconds
-      Attempt 2 → wait 8 seconds
-      Attempt 3 → wait 20 seconds
-    Guarantees a fallback result if GPT fails.
+    Simple deterministic clustering by domain.
+    Never fails.
     """
-    delays = [3, 8, 20]
-    last_error = None
+    clusters = {}
 
-    for attempt, delay in enumerate(delays, start=1):
-        print(f"[CLUSTERS] Attempt {attempt} starting in {delay}s…")
-        time.sleep(delay)
+    for s in stories:
+        domain = s.get("domain", "general")
+        clusters.setdefault(domain, []).append(s)
 
-        try:
-            raw = generate_clusters(stories)
-            return {
-                "ts": time.time(),
-                "clusters": raw.get("clusters", []),
-                "source": raw.get("source", "gpt")
-            }
-        except Exception as e:
-            last_error = str(e)
-            print(f"[CLUSTERS] Attempt {attempt} FAILED → {last_error}")
-
-    # All attempts failed → fail safely
-    print("[CLUSTERS] All GPT attempts failed — fallback mode")
     return {
-        "ts": time.time(),
-        "clusters": [],
-        "source": "gpt_failure",
-        "error": last_error
+        "clusters": [
+            {"domain": d, "stories": items}
+            for d, items in clusters.items()
+        ],
+        "source": "rule_based_default",
+        "ts": time.time()
     }
+
+
+# --------------------------------------------------
+# PUBLIC ENTRYPOINT
+# --------------------------------------------------
+
+def safe_generate_clusters_with_backoff(stories: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Ingest-safe clustering controller.
+
+    Behavior:
+    • GPT disabled → rule-based only
+    • GPT enabled → attempt GPT once (non-blocking)
+    • Any failure → rule-based fallback
+    """
+
+    # ---------- DEFAULT ----------
+    if not _gpt_enabled():
+        return _rule_based_clusters(stories)
+
+    # ---------- GPT PATH (OPTIONAL) ----------
+    print("[CLUSTERS] GPT semantic clustering enabled (best-effort).")
+
+    try:
+        from backend.script_engine.analytics_cluster_gpt import generate_clusters
+    except Exception as e:
+        print(f"[CLUSTERS] GPT engine unavailable → fallback ({e})")
+        return _rule_based_clusters(stories)
+
+    try:
+        result = generate_clusters(stories)
+        return {
+            "clusters": result.get("clusters", []),
+            "source": "gpt",
+            "ts": time.time()
+        }
+    except Exception as e:
+        print(f"[CLUSTERS] GPT clustering failed → fallback ({e})")
+        return _rule_based_clusters(stories)

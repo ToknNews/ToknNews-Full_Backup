@@ -15,8 +15,8 @@ Upgrades:
 import time
 from typing import List, Dict, Any
 
-from script_engine.persona.pd_engine import pd_engine
-from script_engine.grok_writer_v5 import generate_conversation
+from backend.script_engine.persona.pd_engine_v45 import pd_engine
+from backend.script_engine.grok_writer_v5 import generate_conversation
 from script_engine.persona.voice_map import load_voice_map
 from script_engine.dynamic_rundown import generate_rundown
 from script_engine.runtime_estimator import estimate_block_runtime

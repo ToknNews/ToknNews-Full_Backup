@@ -11,17 +11,46 @@
 
 <body>
 
-<!-- Particle Layer -->
+<!-- PARTICLE LAYER -->
 <div id="particle-layer"></div>
 
+<!-- HEADER -->
 <header class="ep-header">
     <img src="/frontend/assets/img/Tokn_Logo_Main_4.png" class="ep-logo" />
     <h1 class="ep-title">Broadcast Episodes</h1>
 </header>
 
+<!-- EPISODES GRID -->
 <section id="episodesGrid" class="episodes-grid">
-    <!-- JS populates cards here -->
+    <!-- JS injects episode cards -->
 </section>
+
+<!-- SLIDE-UP PLAYER (UI ONLY — NO AUDIO YET) -->
+<div id="epPlayer" class="ep-player hidden">
+
+    <div class="ep-player-left">
+        <img
+            id="epPlayerArt"
+            src="/frontend/assets/img/YT_Banner_Tokn.jpg"
+            class="ep-player-art"
+        />
+
+        <div class="ep-player-meta">
+            <h3 id="epPlayerTitle">Select an episode</h3>
+            <p id="epPlayerInfo">Playback controls enabled soon</p>
+
+            <!-- Fake controls for now -->
+            <div class="ep-controls disabled">
+                <span>⏮</span>
+                <span>▶</span>
+                <span>⏭</span>
+                <span class="ep-timeline"></span>
+            </div>
+        </div>
+    </div>
+
+    <button id="epClose" class="ep-close">Close</button>
+</div>
 
 </body>
 </html>

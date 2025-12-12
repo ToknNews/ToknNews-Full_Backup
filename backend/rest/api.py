@@ -6,57 +6,81 @@ Primary entrypoint for Waitress via run_rest_pm2.py
 
 from flask import Flask
 
-# --- Core Blueprints ---
+# -----------------------------------------------------------
+# CORE SYSTEM BLUEPRINTS
+# -----------------------------------------------------------
 from backend.rest.routes.health import health_bp
 from backend.rest.routes.ingest_v2.submit import ingest_v2_bp
 from backend.rest.routes.admin import admin_bp
 from backend.rest.routes.analytics import analytics_bp
 from backend.rest.routes.analytics_refresh import refresh_bp
-from backend.rest.routes.diagnostics_gpt import diagnostics_bp
-from backend.rest.routes.studio_ads import ads_bp
-from backend.rest.routes.studio_episode import episode_bp
 
-# --- Studio Authentication ---
+# -----------------------------------------------------------
+# STUDIO AUTH
+# -----------------------------------------------------------
 from backend.rest.routes.studio import studio_bp
 
-# --- NEW: Control Studio Panels ---
+# -----------------------------------------------------------
+# CONTROL STUDIO v5 — EPISODE CONSOLE
+# -----------------------------------------------------------
 from backend.rest.routes.studio_control import control_bp
 
-# --- NEW: LLM Tools ---
+# -----------------------------------------------------------
+# LLM TOOLS
+# -----------------------------------------------------------
 from backend.rest.routes.studio_llm import llm_bp
 
+# -----------------------------------------------------------
+# ADS MANAGER
+# -----------------------------------------------------------
+from backend.rest.routes.studio_ads import ads_bp
+
+# -----------------------------------------------------------
+# ADMIN LOGS
+from backend.rest.routes.admin_logs import admin_logs_bp
+
+# -----------------------------------------------------------
+# EPISODE AUDIO
+from backend.rest.routes.studio_episode_audio import audio_bp
+
+
+# -----------------------------------------------------------
+# APPLICATION FACTORY
+# -----------------------------------------------------------
 
 def create_app():
     app = Flask(__name__)
 
-    # --- Register core routes ---
+    # Core
     app.register_blueprint(health_bp)
     app.register_blueprint(ingest_v2_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(refresh_bp)
-    app.register_blueprint(diagnostics_bp)
 
-    # --- Register Studio Auth ---
+    # Auth
     app.register_blueprint(studio_bp)
 
-    # --- Register Control Studio Panels ---
+    # Studio Console v5
     app.register_blueprint(control_bp)
 
-    # --- Register LLM Tools ---
+    # LLM Tools + Ads
     app.register_blueprint(llm_bp)
     app.register_blueprint(ads_bp)
 
-    app.register_blueprint(episode_bp)
+    # Admin Logs
+    app.register_blueprint(admin_logs_bp)
+
+    # EPISODE AUDIO
+    app.register_blueprint(audio_bp)
 
     return app
 
 
-# Flask WSGI app (served by Waitress via run_rest_pm2.py)
+# WSGI APP
 app = create_app()
 
 
-# Optional dev runner (ignored in production)
 if __name__ == "__main__":
-    print("ToknNews API running in development mode on port 5599...")
+    print("ToknNews API running in development mode on port 5599…")
     app.run(host="0.0.0.0", port=5599)

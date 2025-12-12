@@ -1,74 +1,72 @@
-/* ============================================================
-   TOKN Control Studio — CLEAN VERSION (NO OLD EPISODE QUEUE)
-   ============================================================ */
+/* ============================================================================
+   TOKN Control Studio — Unified JS (Episode Console + Clusters Ready)
+   ============================================================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
 
     /* ============================================================
-       PARTICLE ENGINE
+       PARTICLE ENGINE (shared aesthetic)
     ============================================================ */
     const container = document.getElementById("particle-layer");
-
     function spawnParticle() {
         const p = document.createElement("div");
         p.classList.add("particle");
-
         const size = Math.random() * 4 + 2;
         const left = Math.random() * 100;
         const duration = Math.random() * 4 + 4;
-
         p.style.width = `${size}px`;
         p.style.height = `${size}px`;
         p.style.left = `${left}vw`;
         p.style.animationDuration = `${duration}s`;
-
         container.appendChild(p);
         setTimeout(() => p.remove(), duration * 1000);
     }
-
     setInterval(spawnParticle, 160);
-
 
 
     /* ============================================================
        SIDEBAR NAVIGATION
     ============================================================ */
-
     const sideItems = document.querySelectorAll(".side-item");
     const panels    = document.querySelectorAll(".studio-panel");
 
-    function activatePanel(panelId) {
+    function activatePanel(id) {
         panels.forEach(p => p.classList.remove("active"));
-        const panel = document.getElementById("panel-" + panelId);
-        if (panel) panel.classList.add("active");
+        document.getElementById("panel-" + id)?.classList.add("active");
 
         sideItems.forEach(b => b.classList.remove("active"));
-        const btn = document.querySelector(`[data-panel="${panelId}"]`);
-        if (btn) btn.classList.add("active");
+        document.querySelector(`[data-panel="${id}"]`)?.classList.add("active");
+
+        // Load per-panel backend endpoints
+        if (id === "episodes") {
+            loadEpisodeHistory();
+            loadAutonomousStatus();
+        }
+        if (id === "clusters") {
+            loadClusters();
+        }
     }
 
-    sideItems.forEach(btn => {
-        btn.addEventListener("click", () => activatePanel(btn.dataset.panel));
-    });
+    sideItems.forEach(btn =>
+        btn.addEventListener("click", () => activatePanel(btn.dataset.panel))
+    );
 
     activatePanel("dashboard");
 
 
 
-    /* ============================================================
-       SECTION 1 — LLM SEGMENT GENERATOR
-    ============================================================ */
-
-    const segConcept   = document.getElementById("segmentConcept");
-    const segPersona   = document.getElementById("segmentPersona");
-    const segModel     = document.getElementById("segmentModel");
-    const segLN        = document.getElementById("segmentLateNight");
-    const segOut       = document.getElementById("segmentOutput");
-    const segBtn       = document.getElementById("segmentGenerateBtn");
-    const segActions   = document.getElementById("segmentActions");
+    /* ========================================================================
+       SECTION 1 — LLM SEGMENT GEN
+       ======================================================================== */
+    const segConcept = document.getElementById("segmentConcept");
+    const segPersona = document.getElementById("segmentPersona");
+    const segModel   = document.getElementById("segmentModel");
+    const segLN      = document.getElementById("segmentLateNight");
+    const segOut     = document.getElementById("segmentOutput");
+    const segBtn     = document.getElementById("segmentGenerateBtn");
+    const segActions = document.getElementById("segmentActions");
 
     let lastSegmentScript = "";
-    let lastSegmentDomain = "";
 
     segBtn.addEventListener("click", async () => {
         segOut.style.display = "none";
@@ -93,60 +91,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.ok) {
             lastSegmentScript = data.script;
-            lastSegmentDomain = data.recommended_persona || "";
             segActions.classList.add("active");
         }
     });
 
-    document.getElementById("queueSegmentBtn").addEventListener("click", async () => {
-        await fetch("/api/studio/llm/queue_segment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                persona: segPersona.value.trim(),
-                script: lastSegmentScript,
-                domain: lastSegmentDomain
-            })
-        });
-        alert("Segment queued.");
-    });
-
-    document.getElementById("saveSegmentBtn").addEventListener("click", async () => {
-        await fetch("/api/studio/llm/save_to_storybank", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                persona: segPersona.value.trim(),
-                script: lastSegmentScript,
-                domain: lastSegmentDomain,
-                tags: ["segment"]
-            })
-        });
-        alert("Saved to StoryBank.");
-    });
 
 
-
-    /* ============================================================
+    /* ========================================================================
        SECTION 2 — FEED QUERY
-    ============================================================ */
-
-    const fqQuery   = document.getElementById("feedQueryInput");
+       ======================================================================== */
+    const fqQuery = document.getElementById("feedQueryInput");
     const fqPersona = document.getElementById("feedPersona");
-    const fqModel   = document.getElementById("feedModel");
-    const fqLN      = document.getElementById("feedLateNight");
-    const fqBtn     = document.getElementById("feedGenerateBtn");
-    const fqOut     = document.getElementById("feedOutput");
+    const fqModel = document.getElementById("feedModel");
+    const fqLN = document.getElementById("feedLateNight");
+    const fqOut = document.getElementById("feedOutput");
     const fqActions = document.getElementById("feedActions");
-    const fqMeta    = document.getElementById("feedMeta");
-
-    let lastFeedScript = "";
-    let lastFeedDomain = "";
+    const fqBtn = document.getElementById("feedGenerateBtn");
 
     fqBtn.addEventListener("click", async () => {
         fqOut.style.display = "none";
         fqActions.classList.remove("active");
-        fqMeta.classList.remove("active");
 
         const payload = {
             query: fqQuery.value.trim(),
@@ -165,73 +129,117 @@ document.addEventListener("DOMContentLoaded", () => {
         fqOut.textContent = JSON.stringify(data, null, 2);
         fqOut.style.display = "block";
 
-        if (data.ok) {
-            lastFeedScript = data.script;
-            lastFeedDomain = data.recommended_persona || "";
+        if (data.ok) fqActions.classList.add("active");
+    });
 
-            fqMeta.innerHTML = `
-                <div><strong>Cluster:</strong> ${data.cluster}</div>
-                <div><strong>Summary:</strong> ${data.cluster_summary}</div>
-                <div><strong>Signals:</strong></div>
-                <ul>${data.signals_used.map(s => `<li>${s}</li>`).join("")}</ul>
-            `;
-            fqMeta.classList.add("active");
-            fqActions.classList.add("active");
+    /* ========================================================================
+       SECTION 3 — CLUSTERS VIEWER (FINAL DROP-IN)
+       ======================================================================== */
+
+    const clusterGrid        = document.getElementById("clusterGrid");
+    const clusterModeLabel   = document.getElementById("clusterMode");
+    const clusterUpdatedLabel = document.getElementById("clusterUpdated");
+    const clusterRefreshBtn  = document.getElementById("clusterRefreshBtn");
+
+    async function loadClusters() {
+        if (!clusterGrid) return;
+
+        clusterGrid.innerHTML = "Loading clusters…";
+
+        try {
+            const r = await fetch("/api/admin/analytics/clusters");
+            const data = await r.json();
+
+            if (!data || !Array.isArray(data.clusters) || !data.clusters.length) {
+                clusterGrid.innerHTML = "No cluster data available.";
+                return;
+            }
+
+            // Header metadata
+            if (clusterModeLabel) {
+                clusterModeLabel.textContent = `Clustering: ${data.source || "unknown"}`;
+            }
+            if (clusterUpdatedLabel && data.ts) {
+                clusterUpdatedLabel.textContent =
+                    `Updated: ${new Date(data.ts * 1000).toLocaleTimeString()}`;
+            }
+
+            clusterGrid.innerHTML = data.clusters.map(cluster => {
+                const stories = cluster.stories || [];
+
+                const anchors = [...new Set(
+                    stories.flatMap(s => s.anchors || [])
+                )];
+
+                const avgImportance = stories.length
+                    ? (
+                        stories.reduce((a, s) => a + (s.importance || 0), 0)
+                        / stories.length
+                      ).toFixed(1)
+                    : "–";
+
+                return `
+                    <div class="cluster-card">
+                        <h3>${cluster.domain.toUpperCase()} (${stories.length})</h3>
+
+                        <div class="cluster-meta">
+                            <div><strong>Anchors:</strong> ${anchors.join(", ") || "—"}</div>
+                            <div><strong>Avg Importance:</strong> ${avgImportance}</div>
+                        </div>
+
+                        <ul class="cluster-stories">
+                            ${stories.slice(0, 4).map(s => `
+                                <li>
+                                    <strong>${s.headline}</strong>
+                                    <div class="cluster-story-meta">
+                                        Importance: ${s.importance ?? "—"} |
+                                        ${s.sentiment ?? "Neutral"}
+                                    </div>
+                                </li>
+                            `).join("")}
+                        </ul>
+
+                        ${stories.length > 4 ? `
+                            <div class="cluster-more">
+                                + ${stories.length - 4} more stories
+                            </div>
+                        ` : ""}
+                    </div>
+                `;
+            }).join("");
+
+        } catch (err) {
+            console.error("[Clusters] Failed to load", err);
+            clusterGrid.innerHTML = "Failed to load clusters.";
         }
-    });
+    }
 
-    document.getElementById("queueFeedBtn").addEventListener("click", async () => {
-        await fetch("/api/studio/llm/queue_segment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                persona: fqPersona.value.trim(),
-                script: lastFeedScript,
-                domain: lastFeedDomain
-            })
-        });
-        alert("Feed segment queued.");
-    });
-
-    document.getElementById("saveFeedBtn").addEventListener("click", async () => {
-        await fetch("/api/studio/llm/save_to_storybank", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                persona: fqPersona.value.trim(),
-                script: lastFeedScript,
-                domain: lastFeedDomain,
-                tags: ["feed_query"]
-            })
-        });
-        alert("Feed saved.");
+    /* Manual recompute */
+    clusterRefreshBtn?.addEventListener("click", () => {
+        clusterGrid.innerHTML = "Recomputing clusters…";
+        loadClusters();
     });
 
 
-
-    /* ============================================================
-       SECTION 3 — AD MANAGER (unchanged)
-    ============================================================ */
-
-    // ... YOUR AD MANAGER CODE STAYS AS-IS ...
-
-
-
-    /* ============================================================
-       SECTION 4 — EPISODE CONSOLE (NEW SYSTEM ONLY)
-    ============================================================ */
-
-    const epMode = document.getElementById("episodeMode");
-    const epCap  = document.getElementById("episodeCap");
-    const epSkip = document.getElementById("episodeSkipIngest");
-
-    const epBtn     = document.getElementById("episodeGenerateBtn");
+    /* ========================================================================
+       SECTION 4 — EPISODE CONSOLE
+       ======================================================================== */
     const epPreview = document.getElementById("episodePreview");
     const epEditor  = document.getElementById("episodeEditor");
     const epActions = document.getElementById("episodeActions");
     const epMeta    = document.getElementById("episodeMeta");
+    const epBtn     = document.getElementById("episodeGenerateBtn");
+    const epIngest  = document.getElementById("episodeNewIngestBtn");
+    const epAutoBtn = document.getElementById("episodeAutoToggle");
 
-    let lastEpisode = null;
+    let currentEpisode = null;
+
+    epIngest?.addEventListener("click", async () => {
+        epPreview.textContent = "Refreshing stories…";
+        const r = await fetch("/api/studio/episode/breaking", { method: "POST" });
+        const data = await r.json();
+        alert(data.ok ? "Ingest refreshed. Now click Generate Script." : "Ingest failed.");
+    });
 
     epBtn.addEventListener("click", async () => {
         epPreview.style.display = "none";
@@ -239,26 +247,20 @@ document.addEventListener("DOMContentLoaded", () => {
         epActions.classList.remove("active");
         epMeta.classList.remove("active");
 
-        const payload = {
-            mode: epMode.value,
-            cap: Number(epCap.value),
-            skip_ingest: epSkip.checked
-        };
-
-        const r = await fetch("/api/studio/episode/preview", {
+        const r = await fetch("/api/studio/episode/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({})
         });
 
         const data = await r.json();
-        lastEpisode = data;
-
         if (!data.ok) {
-            epPreview.textContent = "ERROR: " + (data.error || "Unknown error");
+            epPreview.textContent = "ERROR: " + data.error;
             epPreview.style.display = "block";
             return;
         }
+
+        currentEpisode = data;
 
         epPreview.textContent = JSON.stringify(data.blocks, null, 2);
         epPreview.style.display = "block";
@@ -267,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .map((b, i) => `
                 <div class="edit-block">
                     <label><strong>${b.speaker}</strong> (${b.tag})</label>
-                    <textarea data-idx="${i}" class="edit-text">${b.text}</textarea>
+                    <textarea class="edit-text" data-idx="${i}">${b.text}</textarea>
                 </div>
             `)
             .join("");
@@ -278,43 +280,90 @@ document.addEventListener("DOMContentLoaded", () => {
         epMeta.innerHTML = `
             <div><strong>Episode ID:</strong> ${data.episode_id}</div>
             <div><strong>Mode:</strong> ${data.mode}</div>
-            <div><strong>Estimated Runtime:</strong> ${(data.estimated_runtime_sec/60).toFixed(2)} min</div>
         `;
         epMeta.classList.add("active");
     });
 
-    document.getElementById("episodeApproveBtn")
-        .addEventListener("click", async () => {
-            if (!lastEpisode) return;
+    document.getElementById("episodeApproveBtn")?.addEventListener("click", async () => {
+        if (!currentEpisode) return;
 
-            const edits = [...document.querySelectorAll(".edit-text")]
-                .map(el => el.value);
+        const edits = [...document.querySelectorAll(".edit-text")].map(el => el.value);
 
-            const r = await fetch("/api/studio/episode/approve", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    episode_id: lastEpisode.episode_id,
-                    edits
-                })
-            });
-
-            const data = await r.json();
-            alert(data.ok ? "Approved." : "Failed.");
+        const r = await fetch("/api/studio/episode/approve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                episode_id: currentEpisode.episode_id,
+                audio_blocks: currentEpisode.audio_blocks,
+                edits
+            })
         });
 
-    document.getElementById("episodeRenderBtn")
-        .addEventListener("click", async () => {
-            if (!lastEpisode) return;
+        const data = await r.json();
+        alert(data.ok ? "Render Started." : "Approval Failed.");
+        loadEpisodeHistory();
+    });
 
-            const r = await fetch("/api/studio/episode/render", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ episode_id: lastEpisode.episode_id })
-            });
+    async function loadEpisodeHistory() {
+        const panel = document.getElementById("episodeHistory");
+        if (!panel) return;
 
-            const data = await r.json();
-            alert(data.ok ? "Render started." : "Render failed.");
+        const r = await fetch("/api/studio/episodes/history");
+        const data = await r.json();
+
+        if (!data.ok) {
+            panel.innerHTML = "Failed to load history.";
+            return;
+        }
+
+        panel.innerHTML = data.episodes
+            .map(ep => `
+                <div class="history-item">
+                    <strong>${ep.episode_id}</strong>
+                    <div>${new Date(ep.timestamp * 1000).toLocaleString()}</div>
+                    <div>${ep.mode}</div>
+                </div>
+            `)
+            .join("");
+    }
+
+    async function loadAutonomousStatus() {
+        const r = await fetch("/api/studio/autonomous/status");
+        const data = await r.json();
+        epAutoBtn.checked = data.autonomous;
+    }
+
+    epAutoBtn?.addEventListener("change", async () => {
+        await fetch("/api/studio/autonomous/set", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: epAutoBtn.checked })
         });
+        alert("Autonomous mode updated.");
+    });
 
 });
+
+/* ------------------------------------------------------------
+   SYSTEM LOG VIEWER (PM2 logs)
+------------------------------------------------------------ */
+async function loadLogs() {
+    const box = document.getElementById("logsContent");
+    if (!box) return;
+
+    try {
+        const r = await fetch("/api/admin/logs");
+        const data = await r.json();
+
+        if (!data.ok) {
+            box.textContent = "Failed to load logs.";
+            return;
+        }
+
+        box.textContent = data.text || "(empty)";
+    } catch {
+        box.textContent = "Error loading logs.";
+    }
+}
+
+document.getElementById("logsRefreshBtn")?.addEventListener("click", loadLogs);

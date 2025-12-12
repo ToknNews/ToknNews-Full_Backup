@@ -1,73 +1,92 @@
-/* Floating particles */
-function spawnParticle() {
-    const layer = document.getElementById("particle-layer");
-    const p = document.createElement("div");
-    p.classList.add("particle");
+/* ============================================================
+   TOKN EPISODES — REAL DATA + SLIDE-UP PLAYER (NO AUDIO YET)
+   ============================================================ */
 
-    const size = Math.random() * 3 + 2;
-    const left = Math.random() * 100;
-
-    p.style.width = `${size}px`;
-    p.style.height = `${size}px`;
-    p.style.left = `${left}vw`;
-    p.style.opacity = Math.random() * 0.8 + 0.2;
-
-    layer.appendChild(p);
-
-    const floatTime = Math.random() * 6 + 6;
-
-    p.animate(
-        [
-            { transform: "translateY(40vh)" },
-            { transform: "translateY(-60vh)" }
-        ],
-        {
-            duration: floatTime * 1000,
-            easing: "ease-out",
-        }
-    );
-
-    setTimeout(() => p.remove(), floatTime * 1000);
-}
-
-setInterval(spawnParticle, 140);
-
-/* Load Episodes */
 document.addEventListener("DOMContentLoaded", () => {
-    const grid = document.getElementById("episodesGrid");
 
-    fetch("/api/admin/episodes")
-        .then(r => r.json())
-        .then(data => {
-            grid.innerHTML = "";
+    const grid   = document.getElementById("episodesGrid");
+    const player = document.getElementById("epPlayer");
+    const closeBtn = document.getElementById("epClose");
 
-            if (!Array.isArray(data) || data.length === 0) {
-                grid.innerHTML = "<p>No episodes generated yet.</p>";
+    const title = document.getElementById("epPlayerTitle");
+    const info  = document.getElementById("epPlayerInfo");
+    const art   = document.getElementById("epPlayerArt");
+
+    /* ------------------------------------------------------------
+       LOAD EPISODES (REAL DATA)
+       ------------------------------------------------------------ */
+    async function loadEpisodes() {
+        grid.innerHTML = "Loading episodes…";
+
+        try {
+            const r = await fetch("/api/studio/episodes/history");
+            const data = await r.json();
+
+            if (!data.ok) {
+                grid.innerHTML = "Failed to load episodes.";
                 return;
             }
 
-            data.reverse().forEach(ep => {
-                const card = document.createElement("div");
-                card.className = "episode-card";
+            // 🔑 Reverse chronological (newest first)
+            const episodes = data.episodes
+                .sort((a, b) => b.timestamp - a.timestamp);
 
-                const videoUrl = `/episodes/${ep.episode_id}.mp4`; // Adjust if needed
+            grid.innerHTML = episodes.map(ep => `
+                <div class="episode-card"
+                     data-id="${ep.episode_id}"
+                     data-runtime="${ep.runtime_sec}"
+                     data-mode="${ep.mode}"
+                     data-ts="${ep.timestamp}">
 
-                card.innerHTML = `
-                    <video controls>
-                        <source src="${videoUrl}" type="video/mp4">
-                    </video>
+                    <img
+                        src="/frontend/assets/img/YT_Banner_Tokn.jpg"
+                        class="episode-thumb"
+                    />
 
-                    <div class="episode-title">Episode ${ep.episode_id}</div>
                     <div class="episode-meta">
-                        ${ep.story_count} stories • Runtime: ${Math.round(ep.runtime)}s
+                        <h3 class="episode-title">${ep.episode_id}</h3>
+                        <div class="episode-info">
+                            ${new Date(ep.timestamp * 1000).toLocaleString()}
+                            • ${ep.mode}
+                        </div>
                     </div>
-                `;
+                </div>
+            `).join("");
 
-                grid.appendChild(card);
-            });
-        })
-        .catch(err => {
-            grid.innerHTML = "<p>Error loading episodes.</p>";
+        } catch (err) {
+            grid.innerHTML = "Error loading episodes.";
             console.error(err);
-        });
+        }
+    }
+
+    /* ------------------------------------------------------------
+       OPEN SLIDE-UP PLAYER (UI ONLY)
+       ------------------------------------------------------------ */
+    grid.addEventListener("click", e => {
+        const card = e.target.closest(".episode-card");
+        if (!card) return;
+
+        const epId = card.dataset.id;
+        const mode = card.dataset.mode;
+        const runtime = Math.round(card.dataset.runtime);
+
+        title.textContent = epId;
+        info.textContent  = `${mode} • ${runtime}s • Audio playback coming soon`;
+        art.src = "/frontend/assets/img/YT_Banner_Tokn.jpg";
+
+        player.classList.remove("hidden");
+    });
+
+    /* ------------------------------------------------------------
+       CLOSE PLAYER
+       ------------------------------------------------------------ */
+    closeBtn.addEventListener("click", () => {
+        player.classList.add("hidden");
+    });
+
+    /* ------------------------------------------------------------
+       INIT
+       ------------------------------------------------------------ */
+    loadEpisodes();
+
 });

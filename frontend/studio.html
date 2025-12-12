@@ -160,76 +160,47 @@
 
 <section id="panel-episodes" class="studio-panel hidden">
 
-        <h2>Episode Console</h2>
+    <h2>Episode Console</h2>
 
-        <!-- ==================== MODE SELECTOR ==================== -->
-        <div class="field-row">
+    <!-- ================= NEW INGEST BUTTON ================= -->
+    <button id="episodeNewIngestBtn" class="tokn-btn" style="margin-bottom: 18px;">
+        🔄 New Ingest (Refresh Stories)
+    </button>
 
-                <div>
-                        <label>Episode Mode</label>
-                        <select id="episodeMode" class="field-input">
-                                <option value="NEWS">NEWS</option>
-                                <option value="HEAVY_NEWS">HEAVY_NEWS</option>
-                                <option value="BREAKING">BREAKING</option>
-                                <option value="CHAOS">CHAOS</option>
-                                <option value="MORNING_BRIEF">MORNING_BRIEF</option>
-                                <option value="LATE_NIGHT">LATE_NIGHT</option>
-                        </select>
-                </div>
+    <!-- ================= GENERATE EPISODE BUTTON ============ -->
+    <button id="episodeGenerateBtn" class="tokn-btn" style="margin-bottom: 20px;">
+        Generate Script
+    </button>
 
-                <div>
-                        <label>Max Stories</label>
-                        <input id="episodeCap" class="field-input"
-                               type="number" value="10" min="1" max="30" />
-                </div>
+    <!-- ================== SCRIPT PREVIEW ==================== -->
+    <pre id="episodePreview" class="output-block hidden"></pre>
 
-                <div class="checkbox-block">
-                        <label><input type="checkbox" id="episodeSkipIngest"> Skip ingest</label>
-                </div>
+    <!-- ================== SCRIPT EDITOR ===================== -->
+    <div id="episodeEditor" class="meta-block hidden"></div>
 
-        </div>
-        <!-- ================= END MODE SELECTOR =================== -->
-
-
-
-        <!-- =============== GENERATE PREVIEW BUTTON =============== -->
-        <button id="episodeGenerateBtn" class="tokn-btn">
-                Generate Script Preview
+    <!-- ================== APPROVAL ACTIONS ================== -->
+    <div id="episodeActions" class="actions-row hidden" style="margin-top: 20px;">
+        <button id="episodeApproveBtn" class="tokn-btn small">
+            ✅ Degen Approved
         </button>
+    </div>
 
+    <!-- ================== EPISODE META ====================== -->
+    <div id="episodeMeta" class="meta-block hidden" style="margin-top: 20px;"></div>
 
+    <!-- ================== AUTONOMOUS MODE =================== -->
+    <div class="meta-block" style="margin-top: 22px;">
+        <label style="display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="episodeAutoToggle">
+            <strong>Autonomous Mode (24/7 Episodes)</strong>
+        </label>
+    </div>
 
-        <!-- ====================== SCRIPT PREVIEW ====================== -->
-        <pre id="episodePreview" class="output-block hidden"></pre>
-
-
-
-        <!-- ======================== EDITOR BLOCK ======================= -->
-        <div id="episodeEditor" class="meta-block hidden"></div>
-
-
-
-        <!-- ======================== ACTION BUTTONS ===================== -->
-        <div id="episodeActions" class="actions-row hidden">
-
-                <button id="episodeApproveBtn"
-                        class="tokn-btn small">
-                        Degen Approved
-                </button>
-
-                <button id="episodeRenderBtn"
-                        class="tokn-btn small">
-                        Render Episode
-                </button>
-
-        </div>
-        <!-- ===================== END ACTION BUTTONS ==================== -->
-
-
-
-        <!-- ======================= EPISODE META ======================== -->
-        <div id="episodeMeta" class="meta-block hidden"></div>
-        <!-- ==================== END EPISODE META ===================== -->
+    <!-- ================== EPISODE HISTORY =================== -->
+    <div class="meta-block" style="margin-top: 22px;">
+        <h3 style="margin: 0 0 10px 0; color:#aee4ff;">Episode History</h3>
+        <div id="episodeHistory">Loading…</div>
+    </div>
 
 </section>
 
@@ -315,14 +286,35 @@
 
         <!-- CLUSTERS -->
         <section id="panel-clusters" class="studio-panel hidden">
-            <h2>Clusters</h2>
-            <div id="clusterContent">Loading…</div>
+            <h2>Editorial Clusters</h2>
+
+            <!-- Status Bar -->
+            <div class="cluster-status-bar">
+                <span id="clusterMode">Clustering: …</span>
+                <span id="clusterUpdated">Updated: …</span>
+                <button id="clusterRefreshBtn" class="tokn-btn small">
+                    Recompute
+                </button>
+            </div>
+
+            <!-- Cluster Cards -->
+            <div id="clusterGrid" class="cluster-grid">
+                <!-- JS renders cards here -->
+            </div>
         </section>
+
 
         <!-- LOGS -->
         <section id="panel-logs" class="studio-panel hidden">
-            <h2>Logs</h2>
-            <div id="logsContent">Logs coming soon…</div>
+    
+            <h2>System Logs</h2>
+
+            <div class="field-row">
+                <button id="logsRefreshBtn" class="tokn-btn small">Refresh Logs</button>
+            </div>
+
+            <pre id="logsContent" class="logs-output">Loading logs…</pre>
+
         </section>
 
     </main>

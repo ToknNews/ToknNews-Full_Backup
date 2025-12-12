@@ -249,3 +249,143 @@ body {
 .actions-row.active {
     display: flex;
 }
+
+/* ============================================================
+   LOG VIEWER (PM2 Tail Output)
+============================================================ */
+.logs-output {
+    background: rgba(0, 10, 25, 0.70);
+    border: 1px solid rgba(60, 140, 255, 0.35);
+    padding: 16px;
+    border-radius: 12px;
+    color: #bfe6ff;
+    font-family: monospace;
+    white-space: pre-wrap;
+    height: 420px;
+    overflow-y: auto;
+    font-size: 13px;
+    box-shadow: inset 0 0 16px rgba(60, 140, 255, 0.25);
+}
+
+/* ============================================================
+   CLUSTERS VIEW — TOKN STUDIO POLISH
+   ============================================================ */
+
+#panel-clusters {
+    padding: 30px 36px;
+}
+
+/* Header row */
+.cluster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.cluster-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#clusterMode {
+    font-size: 14px;
+    color: #7fcfff;
+    letter-spacing: 0.8px;
+}
+
+#clusterUpdated {
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+/* Grid */
+#clusterGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 26px;
+}
+
+/* Card */
+.cluster-card {
+    background: rgba(10, 18, 35, 0.55);
+    border-radius: 16px;
+    padding: 18px 20px 20px;
+    border: 1px solid rgba(0, 150, 255, 0.25);
+    backdrop-filter: blur(14px) saturate(160%);
+    box-shadow:
+        inset 0 0 18px rgba(0, 120, 255, 0.15),
+        0 0 22px rgba(0, 120, 255, 0.12);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.cluster-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+        inset 0 0 22px rgba(0, 160, 255, 0.25),
+        0 0 36px rgba(0, 160, 255, 0.45);
+}
+
+/* Domain title */
+.cluster-card h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: #a9ddff;
+    text-transform: uppercase;
+}
+
+/* Meta row */
+.cluster-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    opacity: 0.75;
+    margin-bottom: 12px;
+}
+
+/* Stories list */
+.cluster-stories {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cluster-stories li {
+    font-size: 13px;
+    line-height: 1.35;
+    padding-left: 10px;
+    position: relative;
+}
+
+.cluster-stories li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #4fc3ff;
+}
+
+/* Story meta */
+.cluster-story-meta {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 2px;
+}
+
+/* Overflow indicator */
+.cluster-more {
+    margin-top: 12px;
+    font-size: 12px;
+    opacity: 0.65;
+    text-align: right;
+    letter-spacing: 0.4px;
+}
+
+/* Refresh button alignment */
+#clusterRefreshBtn {
+    margin-left: auto;
+}

@@ -192,6 +192,61 @@ def write_batch_conversations_v5(batch: List[Dict[str,Any]], latenight=False) ->
     conversations = _split_conversations(raw, len(batch))
     return conversations
 
+# -----------------------------------------------------------
+# SINGLE-STORY PUBLIC API
+# TimelineBuilder v5 expects this function.
+# -----------------------------------------------------------
+
+def generate_conversation(
+    story: Dict[str,Any],
+    primary: str,
+    secondary: str = None,
+    tertiary: str = None,
+    mode: str = "NEWS",
+):
+    """
+    Wraps write_batch_conversations_v5() to generate ONE conversation
+    for a single story, preserving all v5 personas + latenight logic.
+    """
+
+    batch = [{
+        "story": story,
+        "primary": primary,
+        "secondary": secondary,
+        "tertiary": tertiary,
+        "anchors": [a for a in [primary, secondary, tertiary] if a],
+        "heat": story.get("signals", {}).get("composite_heat", 3),
+        "domain": story.get("domain", "markets"),
+    }]
+
+    latenight = (mode == "LATE_NIGHT" or mode == "CHAOS")
+
+    results = write_batch_conversations_v5(batch, latenight=latenight)
+
+    # Return parsed list of {speaker,text,tag}
+    convo_text = results[0]
+    lines = []
+
+    for raw in convo_text.splitlines():
+        if ":" not in raw:
+            continue
+
+        sp, txt = raw.split(":",1)
+        speaker = sp.strip().lower()
+        text = txt.strip()
+
+        tag = "duo_exchange"
+        if speaker == "chip":
+            tag = "chip_transition"
+
+        lines.append({
+            "speaker": speaker,
+            "text": text,
+            "tag": tag,
+        })
+
+    return lines
+
 
 if __name__ == "__main__":
     print("grok_writer_v5 loaded successfully.")

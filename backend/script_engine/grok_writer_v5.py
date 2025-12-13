@@ -1,35 +1,33 @@
 #!/usr/bin/env python3
 """
-grok_writer_v5.py
-ToknNews 2025 — Conversational Engine v5
-True multi-anchor conversational dynamics + LateNight mode.
+grok_writer_v6.py
+ToknNews — Broadcast Brain v6
 
-Inputs (from PD Engine v4.5):
-[
-  {
-    "story": {... enriched story ...},
-    "primary": "cash",
-    "secondary": "bond",
-    "tertiary": "ivy" or None,
-    "anchors": ["cash","bond","ivy"],
-    "heat": int,
-    "domain": "markets"
-  },
-  ...
-]
-
-Outputs:
-A list of raw conversation strings, one per story.
-Each string is parsed by Timeline Builder → blocks → TTS.
-
+Upgrades:
+- Explicit continuity (last N episodes)
+- Anchor-aware memory
+- Narrative phase awareness
+- Mode-sensitive tone (NEWS vs CHAOS/LATE_NIGHT)
+- Clean output for TimelineBuilder v5+
 """
 
 from __future__ import annotations
 from typing import List, Dict, Any
+import json
+import os
 from openai import OpenAI
 
 from backend.runtime.vault_loader import load_secrets
 from script_engine.character_brain.persona_loader import get_persona_lines
+
+
+# -----------------------------------------------------------
+# CONFIG
+# -----------------------------------------------------------
+
+MODEL_DEFAULT = "gpt-4.1"
+MEMORY_EPISODES = 5
+EPISODE_DIR = "/opt/toknnews/data/episodes"
 
 
 # -----------------------------------------------------------
@@ -42,14 +40,45 @@ client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 # -----------------------------------------------------------
-# Persona Loading
+# MEMORY LOADERS
+# -----------------------------------------------------------
+
+def _load_recent_episode_memory(limit=MEMORY_EPISODES) -> List[Dict[str,Any]]:
+    if not os.path.exists(EPISODE_DIR):
+        return []
+
+    metas = []
+    for f in os.listdir(EPISODE_DIR):
+        if f.endswith("_meta.json"):
+            try:
+                meta = json.load(open(os.path.join(EPISODE_DIR, f)))
+                metas.append(meta)
+            except Exception:
+                pass
+
+    metas = sorted(metas, key=lambda x: x.get("timestamp", 0), reverse=True)
+    return metas[:limit]
+
+
+def _summarize_memory(memory: List[Dict[str,Any]]) -> str:
+    if not memory:
+        return "No recent episode context."
+
+    lines = []
+    for m in memory:
+        lines.append(
+            f"- {m.get('mode','NEWS')} episode recently covered "
+            f"{m.get('used_story_count','multiple')} stories."
+        )
+
+    return "\n".join(lines)
+
+
+# -----------------------------------------------------------
+# PERSONA
 # -----------------------------------------------------------
 
 def _persona_profile(name: str) -> str:
-    """
-    Returns longform persona description.
-    If persona_loader has deep rules, we use them fully.
-    """
     try:
         lines = get_persona_lines(name) or []
     except Exception:
@@ -57,187 +86,140 @@ def _persona_profile(name: str) -> str:
 
     summary = " ".join(lines).strip()
     if not summary:
-        summary = f"{name.capitalize()} is an anchor on ToknNews."
+        summary = f"{name.capitalize()} is a ToknNews anchor."
 
-    summary = " ".join(summary.split())
     return summary
 
 
 # -----------------------------------------------------------
-# Clean GPT output
+# PROMPT BUILDER
 # -----------------------------------------------------------
 
-def _clean(t: str) -> str:
-    if not t:
+def _build_prompt(
+    story: Dict[str,Any],
+    primary: str,
+    secondary: str | None,
+    tertiary: str | None,
+    mode: str,
+    memory_summary: str,
+) -> str:
+
+    latenight = mode in ("CHAOS", "LATE_NIGHT")
+
+    tone = (
+        "LateNight Mode → sharper, looser, dry humor allowed.\n"
+        if latenight else
+        "Broadcast Mode → professional, measured, confident.\n"
+    )
+
+    anchors = [a for a in [primary, secondary, tertiary] if a]
+
+    prompt = f"""
+You are writing a REAL ToknNews broadcast conversation.
+
+{tone}
+
+GLOBAL RULES:
+- Chip leads transitions.
+- Anchors must acknowledge or respond to each other.
+- Use explicit callbacks when relevant (\"Yesterday we said…\", \"Earlier this week…\").
+- No headline repetition.
+- 4–7 total lines.
+- Natural broadcast pacing.
+
+RECENT CONTEXT:
+{memory_summary}
+
+CHARACTER PROFILES:
+"""
+    prompt += "\n".join(
+        f"- {a.capitalize()}: {_persona_profile(a)}"
+        for a in ["chip"] + anchors
+    )
+
+    summary = story.get("summary","").replace("\n"," ").strip()
+    phase = story.get("phase","escalation")
+
+    prompt += f"""
+
+STORY:
+Summary: {summary}
+Domain: {story.get("domain")}
+Heat: {story.get("importance", 5)}
+Narrative Phase: {phase}
+
+FORMAT EXACTLY AS:
+Chip: ...
+Anchor: ...
+"""
+
+    return prompt.strip()
+
+
+# -----------------------------------------------------------
+# GPT CALL
+# -----------------------------------------------------------
+
+def _call_gpt(prompt: str, latenight: bool) -> str:
+    if not client:
         return ""
-    t = t.strip()
-    if t.startswith("```"):
-        t = t.strip("`").strip()
-    return t
+
+    try:
+        rsp = client.chat.completions.create(
+            model=MODEL_DEFAULT,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.55 if not latenight else 0.75,
+            max_tokens=700,
+            timeout=20
+        )
+        return rsp.choices[0].message.content.strip()
+    except Exception as e:
+        print("[GWv6] GPT ERROR:", e)
+        return ""
 
 
 # -----------------------------------------------------------
-# Build conversation prompt (core intelligence)
-# -----------------------------------------------------------
-
-def _build_prompt(batch: List[Dict[str,Any]], latenight: bool) -> str:
-
-    prompt = "Generate realistic ToknNews anchor conversations.\n\n"
-
-    if latenight:
-        prompt += "LateNight Mode ON → anchors may be slightly looser, witty, dry, or sarcastic.\n"
-        prompt += "Still professional, but more human.\n\n"
-
-    prompt += "Rules:\n"
-    prompt += "- Chip leads transitions.\n"
-    prompt += "- Anchors respond to *each other*, not just the summary.\n"
-    prompt += "- They may disagree, challenge, acknowledge, or build on points.\n"
-    prompt += "- NO headline repetition.\n"
-    prompt += "- 4–7 lines per story.\n"
-    prompt += "- Format ONLY as:\n"
-    prompt += "  Chip: ...\n"
-    prompt += "  Cash: ...\n"
-    prompt += "  Bond: ...\n"
-    prompt += "\nNo narration, no explanations.\n\n"
-
-    # Persona descriptions
-    prompt += "Character Profiles:\n"
-    personas = set()
-    for item in batch:
-        personas.add("chip")
-        personas.update(item["anchors"])
-
-    for p in personas:
-        prompt += f"- {p.capitalize()}: {_persona_profile(p)}\n"
-
-    # Add story payloads
-    for i, item in enumerate(batch, start=1):
-        s = item["story"]
-        summary = s.get("summary") or ""
-        summary = summary.replace("\n"," ").strip()
-
-        prompt += f"\n[STORY {i}]\n"
-        prompt += f"Summary: {summary}\n"
-        prompt += f"Primary: {item['primary']}\n"
-        prompt += f"Secondary: {item.get('secondary') or 'None'}\n"
-        prompt += f"Domain: {item['domain']}\n"
-        prompt += f"Heat: {item['heat']}\n"
-
-        if item.get("tertiary"):
-            prompt += f"Tertiary: {item['tertiary']}\n"
-
-    return prompt
-
-
-# -----------------------------------------------------------
-# Parse GPT output back into per-story sections
-# -----------------------------------------------------------
-
-def _split_conversations(raw: str, count: int) -> List[str]:
-    out = []
-    blocks = raw.split("[STORY ")
-
-    for b in blocks:
-        b = b.strip()
-        if not b or not b[0].isdigit():
-            continue
-        conv = b.split("]",1)[1].strip()
-        out.append(conv)
-
-    # Ensure count matches required
-    while len(out) < count:
-        out.append("Chip: Let's unpack this.\n")
-
-    return out[:count]
-
-
-# -----------------------------------------------------------
-# PUBLIC API: produce conversations for multiple stories
-# -----------------------------------------------------------
-
-def write_batch_conversations_v5(batch: List[Dict[str,Any]], latenight=False) -> List[str]:
-
-    if not batch:
-        return []
-
-    prompt = _build_prompt(batch, latenight)
-
-    if client:
-        try:
-            rsp = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=1500,
-                temperature=0.55 if not latenight else 0.75,
-                timeout=18
-            )
-            raw = _clean(rsp.choices[0].message.content)
-        except Exception as e:
-            print("[GWv5] GPT ERROR:", e)
-            raw = ""
-    else:
-        raw = ""
-
-    # If GPT failed → fallback
-    if not raw:
-        fallbacks = []
-        for item in batch:
-            s = item["story"]["summary"]
-            p = item["primary"].capitalize()
-            fallback = f"Chip: {s} — what's your read?\n{p}: It's meaningful context.\n"
-            fallbacks.append(fallback)
-        return fallbacks
-
-    # Split into individual conversation blocks
-    conversations = _split_conversations(raw, len(batch))
-    return conversations
-
-# -----------------------------------------------------------
-# SINGLE-STORY PUBLIC API
-# TimelineBuilder v5 expects this function.
+# PUBLIC API (TimelineBuilder compatible)
 # -----------------------------------------------------------
 
 def generate_conversation(
     story: Dict[str,Any],
     primary: str,
-    secondary: str = None,
-    tertiary: str = None,
+    secondary: str | None = None,
+    tertiary: str | None = None,
     mode: str = "NEWS",
-):
-    """
-    Wraps write_batch_conversations_v5() to generate ONE conversation
-    for a single story, preserving all v5 personas + latenight logic.
-    """
+) -> List[Dict[str,str]]:
 
-    batch = [{
-        "story": story,
-        "primary": primary,
-        "secondary": secondary,
-        "tertiary": tertiary,
-        "anchors": [a for a in [primary, secondary, tertiary] if a],
-        "heat": story.get("signals", {}).get("composite_heat", 3),
-        "domain": story.get("domain", "markets"),
-    }]
+    memory = _load_recent_episode_memory()
+    memory_summary = _summarize_memory(memory)
 
-    latenight = (mode == "LATE_NIGHT" or mode == "CHAOS")
+    prompt = _build_prompt(
+        story=story,
+        primary=primary,
+        secondary=secondary,
+        tertiary=tertiary,
+        mode=mode,
+        memory_summary=memory_summary,
+    )
 
-    results = write_batch_conversations_v5(batch, latenight=latenight)
+    raw = _call_gpt(prompt, latenight=(mode in ("CHAOS","LATE_NIGHT")))
 
-    # Return parsed list of {speaker,text,tag}
-    convo_text = results[0]
+    # Fallback
+    if not raw:
+        return [
+            {"speaker":"chip","text":"Let’s zoom out for a second.","tag":"chip_transition"},
+            {"speaker":primary,"text":"This one matters more than it looks.","tag":"anchor_analysis"}
+        ]
+
     lines = []
-
-    for raw in convo_text.splitlines():
-        if ":" not in raw:
+    for ln in raw.splitlines():
+        if ":" not in ln:
             continue
-
-        sp, txt = raw.split(":",1)
+        sp, txt = ln.split(":",1)
         speaker = sp.strip().lower()
         text = txt.strip()
 
-        tag = "duo_exchange"
-        if speaker == "chip":
-            tag = "chip_transition"
+        tag = "chip_transition" if speaker == "chip" else "anchor_analysis"
 
         lines.append({
             "speaker": speaker,
@@ -249,4 +231,4 @@ def generate_conversation(
 
 
 if __name__ == "__main__":
-    print("grok_writer_v5 loaded successfully.")
+    print("GrokWriter v6 loaded.")

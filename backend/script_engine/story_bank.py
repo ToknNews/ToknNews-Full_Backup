@@ -102,3 +102,37 @@ def get_recent_for_clustering(limit=200) -> List[Dict[str, Any]]:
 
     return stories[:limit]
 
+
+# --------------------------------------------------
+# TONE MEMORY (NON-FACTUAL)
+# --------------------------------------------------
+
+import time
+
+_TONE_STORE = {}
+
+def get_anchor_tone(anchor, decay_days=14):
+    now = time.time()
+    t = _TONE_STORE.get(anchor)
+    if not t:
+        return {"confidence":0.0,"skepticism":0.0}
+
+    age_days = (now - t["ts"]) / 86400
+    decay = max(0.0, 1 - age_days / decay_days)
+
+    return {
+        "confidence": t["confidence"] * decay,
+        "skepticism": t["skepticism"] * decay,
+    }
+
+def update_anchor_tone(anchor, confidence_delta=0.0, skepticism_delta=0.0):
+    t = _TONE_STORE.get(anchor, {
+        "confidence":0.0,
+        "skepticism":0.0,
+        "ts": time.time()
+    })
+
+    t["confidence"] += confidence_delta
+    t["skepticism"] += skepticism_delta
+    t["ts"] = time.time()
+    _TONE_STORE[anchor] = t

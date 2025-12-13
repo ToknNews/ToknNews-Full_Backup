@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-episode_runner.py — ToknNews Episode Orchestrator v5.2
+episode_runner.py — ToknNews Episode Orchestrator v5.3
 -----------------------------------------------------
 
 Responsibilities:
@@ -24,7 +24,6 @@ from backend.script_engine.persona.pd_engine_v45 import pd_engine
 from backend.script_engine.timeline_builder_v5 import build_timeline
 
 from backend.script_engine.audio.audio_block_renderer import render_audio_blocks
-from backend.script_engine.audio.episode_audio_stitcher import stitch_episode_audio
 
 from backend.render_controller import render_episode
 from backend.runtime.vault_loader import load_secrets
@@ -37,11 +36,9 @@ from backend.runtime.vault_loader import load_secrets
 BASE_DIR = "/opt/toknnews"
 
 EPISODE_DIR = Path(f"{BASE_DIR}/data/episodes")
-BLOCK_DIR   = Path(f"{BASE_DIR}/data/blocks")
 AUDIO_DIR   = Path(f"{BASE_DIR}/data/audio_blocks")
 
 EPISODE_DIR.mkdir(parents=True, exist_ok=True)
-BLOCK_DIR.mkdir(parents=True, exist_ok=True)
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -51,22 +48,23 @@ AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 _secrets = load_secrets()
 
-AUTO_MODE  = os.getenv("AUTONOMOUS_MODE", "false").lower() == "true"
-ENABLE_TTS = os.getenv("ENABLE_TTS", "false").lower() == "true"
-
-# realism toggle (safe default)
-ENABLE_BREATH = os.getenv("ENABLE_BREATH_OVERLAY", "false").lower() == "true"
+AUTO_MODE       = os.getenv("AUTONOMOUS_MODE", "false").lower() == "true"
+ENABLE_TTS      = os.getenv("ENABLE_TTS", "false").lower() == "true"
+ENABLE_BREATH   = os.getenv("ENABLE_BREATH_OVERLAY", "false").lower() == "true"
+ENABLE_VIDEO    = os.getenv("ENABLE_VIDEO_RENDER", "false").lower() == "true"
 
 
 # -------------------------------------------------------
 # SAVE UTILITIES
 # -------------------------------------------------------
 
+def _meta_path(episode_id):
+    return EPISODE_DIR / f"{episode_id}_meta.json"
+
 def save_episode_metadata(episode_id, metadata):
-    path = EPISODE_DIR / f"{episode_id}_meta.json"
+    path = _meta_path(episode_id)
     path.write_text(json.dumps(metadata, indent=2))
     return str(path)
-
 
 def save_pending_script(episode_id, blocks):
     path = EPISODE_DIR / f"{episode_id}_preview.json"
@@ -80,7 +78,7 @@ def save_pending_script(episode_id, blocks):
 
 def generate_episode_script(episode_id=None, skip_ingest=False):
 
-    print("\n=== [EpisodeRunner v5.2] GENERATING SCRIPT ===")
+    print("\n=== [EpisodeRunner v5.3] GENERATING SCRIPT ===")
 
     # -----------------------------
     # Load stories
@@ -97,14 +95,13 @@ def generate_episode_script(episode_id=None, skip_ingest=False):
         raise RuntimeError("No stories available")
 
     # -----------------------------
-    # PD Engine (IMPORTANT FIX)
+    # PD Engine (list-safe)
     # -----------------------------
     pd_out = pd_engine(stories)
 
-    # pd_engine_v45 returns a LIST, not dict
     if isinstance(pd_out, list):
         mode = "NEWS"
-        cap = min(len(pd_out), 10)
+        cap  = min(len(stories), 10)
         used = stories[:cap]
     else:
         mode = pd_out.get("mode", "NEWS")
@@ -152,43 +149,49 @@ def approve_and_render(episode_id, audio_blocks):
 
     print(f"\n=== [EpisodeRunner] APPROVED → {episode_id} ===")
 
-    audio_blocks_path = AUDIO_DIR / episode_id
-    audio_blocks_path.mkdir(parents=True, exist_ok=True)
+    episode_audio_dir = AUDIO_DIR / episode_id
+    episode_audio_dir.mkdir(parents=True, exist_ok=True)
 
     # -----------------------------
-    # TTS
+    # TTS RENDER
     # -----------------------------
     if ENABLE_TTS:
         print("[ER] Rendering TTS blocks…")
-        render_audio_blocks(episode_id, audio_blocks)
+        render_audio_blocks(
+            episode_id=episode_id,
+            audio_blocks=audio_blocks,
+            output_dir=str(episode_audio_dir)
+        )
     else:
-        print("[ER] TTS disabled")
+        print("[ER] TTS disabled — skipping")
 
     # -----------------------------
-    # STITCH FINAL AUDIO
+    # AUDIO RENDER (SCENE-BASED)
     # -----------------------------
-    final_audio = stitch_episode_audio(
-        episode_id=episode_id,
-        audio_blocks_dir=str(audio_blocks_path),
-        output_dir=str(EPISODE_DIR),
-        enable_breath=ENABLE_BREATH
-    )
+    final_audio = None
+
+    if ENABLE_TTS:
+        print("[ER] Rendering final episode audio via ElevenLabs…")
+        final_audio = render_audio_blocks(episode_id, audio_blocks)
+    else:
+        print("[ER] TTS disabled — skipping audio render")
+
 
     # -----------------------------
-    # VIDEO (future)
+    # VIDEO (FUTURE)
     # -----------------------------
     video_path = None
-    if os.getenv("ENABLE_VIDEO_RENDER", "false") == "true":
+    if ENABLE_VIDEO:
+        print("[ER] Rendering video package…")
         video_path = render_episode(audio_blocks, final_audio, episode_id)
 
     # -----------------------------
-    # Update metadata
+    # UPDATE METADATA (SAFE)
     # -----------------------------
-    meta_path = EPISODE_DIR / f"{episode_id}_meta.json"
-    meta = json.load(open(meta_path))
+    meta = json.load(open(_meta_path(episode_id)))
     meta["audio"] = final_audio
     meta["video"] = video_path
-    meta_path.write_text(json.dumps(meta, indent=2))
+    _meta_path(episode_id).write_text(json.dumps(meta, indent=2))
 
     return {
         "episode_id": episode_id,
@@ -213,4 +216,4 @@ if __name__ == "__main__":
     if AUTO_MODE:
         autonomous_loop()
     else:
-        print("EpisodeRunner v5.2 ready.")
+        print("EpisodeRunner v5.3 ready.")

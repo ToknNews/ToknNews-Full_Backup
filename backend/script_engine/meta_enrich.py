@@ -1,107 +1,105 @@
 #!/usr/bin/env python3
 """
 meta_enrich.py
-ToknNews V2 — Story Meta-Enrichment Engine
-
-Adds:
- - why_it_matters
- - narrative_cluster
- - risk_angle
- - smart_money_view
- - anchor_relevance
- - trend_context
+ToknNews — Editorial Meta Enrichment Engine
 """
 
-from openai import OpenAI
+import os
+import json
+import openai
 from backend.runtime.vault_loader import load_secrets
 
-_secrets = load_secrets()
-client = OpenAI(api_key=_secrets.get("openai_api_key","")) if _secrets.get("openai_api_key") else None
+load_secrets()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 def meta_enrich(story):
-    """
-    Add deeper editorial metadata to the enriched story.
-    """
 
-    if client is None:
-        # fallback: generic metadata
-        story["meta"] = {
-            "why_it_matters": "This relates to general market sentiment.",
-            "narrative_cluster": "market_flow",
-            "risk_angle": "neutral",
-            "smart_money_view": "unclear positioning",
-            "anchor_relevance": {
-                "chip": 1.0, "bond": 0.6, "cash": 0.6,
-                "ledger": 0.4, "neura": 0.3, "bitsy": 0.2
-            },
-            "trend_context": "moderate relevance"
-        }
-        return story
+    headline = story.get("headline", "")
+    summary = story.get("summary", "")
+    domain = story.get("domain", "general")
 
-    headline = story.get("headline","")
-    summary  = story.get("summary","")
-    domain   = story.get("domain","general")
+    semantic = story.get("semantic_keys", {})
+    assets = semantic.get("assets", [])
+    event_type = semantic.get("event_type")
+
+    tokn = story.get("toknclaw_context", {})
+    metrics = tokn.get("metrics")
+    memory = tokn.get("memory")
+    deltas = tokn.get("deltas")
+
+    fact_capsules = story.get("fact_capsules", [])
 
     prompt = f"""
-You are enriching a crypto/markets news story for ToknNews.
+You are enriching a crypto / markets news story for a broadcast program.
 
-Story:
+Story
 Headline: {headline}
 Summary: {summary}
 Domain: {domain}
 
-Provide JSON with these fields:
+Assets: {assets}
+Event type: {event_type}
 
-why_it_matters:
-  One sentence that explains the core importance of the story.
+ToknClaw Metrics:
+{metrics}
 
-narrative_cluster:
-  A short label grouping this story into a broader theme
-  (examples: liquidity_shift, regulatory_pressure, ai_expansion,
-   defi_momentum, risk_off, risk_on, whale_activity, infra_upgrade)
+ToknClaw Memory:
+{memory}
 
-risk_angle:
-  One word: positive, negative, or neutral.
+ToknClaw Deltas:
+{deltas}
 
-smart_money_view:
-  One sentence from the perspective of professional traders or institutions.
+Fact Capsules:
+{fact_capsules}
 
-anchor_relevance:
-  Mapping of ToknNews anchors by relevance (0–1 scale).
-  Anchors: chip, bond, cash, lawson, ledger, neura, reef, bitsy, penny, rex.
+Return JSON with:
 
-trend_context:
-  Short phrase indicating where this story fits into ongoing trends.
+why_it_matters
+narrative_cluster
+risk_angle
+smart_money_view
+anchor_relevance
+trend_context
+discussion_angle
+meta_confidence
 
-Format output ONLY as JSON.
+Do not invent facts.
+Use the metrics and fact capsules when available.
 """.strip()
 
     try:
-        rsp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role":"user","content":prompt}],
-            max_tokens=300,
+
+        rsp = openai.ChatCompletion.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
-            timeout=12
+            max_tokens=300
         )
 
-        import json
         meta = json.loads(rsp.choices[0].message.content)
-        story["meta"] = meta
-        return story
 
-    except Exception as e:
-        story["meta"] = {
-            "why_it_matters": "Unclear importance.",
-            "narrative_cluster": "general",
+    except Exception:
+
+        meta = {
+            "why_it_matters": "Market activity suggests evolving sentiment.",
+            "narrative_cluster": "market_flow",
             "risk_angle": "neutral",
-            "smart_money_view": "unclear positioning",
-            "anchor_relevance": {"chip":1.0},
-            "trend_context": "general"
+            "smart_money_view": "Professional traders are monitoring liquidity and positioning.",
+            "anchor_relevance": {
+                "chip": 1.0,
+                "bond": 0.6,
+                "cash": 0.6,
+                "ledger": 0.5,
+                "neura": 0.4,
+                "reef": 0.3,
+                "bitsy": 0.2
+            },
+            "trend_context": "emerging signal",
+            "discussion_angle": "market positioning",
+            "meta_confidence": 0.5
         }
-        return story
 
+    story["meta"] = meta
 
-if __name__ == "__main__":
-    print("Meta Enrich Engine Loaded.")
+    return story

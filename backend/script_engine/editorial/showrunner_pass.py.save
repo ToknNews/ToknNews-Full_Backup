@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""
+showrunner_pass.py
+
+Purpose:
+- Enforce broadcast structure
+- Guarantee Chip controls transitions and introductions
+- DOES NOT write dialogue
+- DOES NOT modify text
+- Outputs indices where Chip MUST intervene
+"""
+
+import json
+import os
+import openai
+from typing import List, Dict
+from dotenv import load_dotenv
+
+load_dotenv("/opt/toknnews/.env")
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+MODEL = "gpt-4.1-mini"
+
+
+# --------------------------------------------------
+# GPT: Detect REAL topic shifts only
+# --------------------------------------------------
+
+def analyze_topic_shifts(dialogue: List[Dict[str, str]]) -> List[int]:
+    if len(dialogue) < 4:
+        return []
+
+    numbered = "\n".join(
+        f"{i}. {t['speaker'].upper()}: {t['text']}"
+        for i, t in enumerate(dialogue)
+    )
+
+    prompt = f"""
+You are a broadcast showrunner.
+
+Identify ONLY meaningful topic shifts where a host
+must wrap and re-toss.
+
+Rules:
+- Ignore normal back-and-forth
+- Ignore speaker changes
+- Flag only REAL narrative / asset / domain shifts
+
+Return JSON ONLY:
+{{
+  "break_after_turns": [integer indices]
+}}
+
+Indices are ZERO-BASED.
+
+Conversation:
+{numbered}
+""".strip()
+
+    try:
+        rsp = openai.ChatCompletion.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=120,
+            timeout=10,
+        )
+
+        raw = rsp.choices[0].message.content or ""
+        raw = raw.strip()
+
+        if not raw.startswith("{"):
+            return []
+
+        data = json.loads(raw)
+        breaks = data.get("break_after_turns", [])
+
+        return [int(i) for i in breaks if isinstance(i, int)]
+
+    except Exception as e:
+        print("[SHOWRUNNER ERROR]", e)
+        return []
+
+
+# --------------------------------------------------
+# STRUCTURAL PASS (NEW LOGIC)
+# --------------------------------------------------
+
+def enforce_broadcast_structure(dialogue: List[Dict[str, str]]) -> List[int]:
+    breaks = set()
+    seen_speakers = set()
+
+    # RULE 1 — Cold open protection
+    if dialogue and dialogue[0].get("speaker") != "chip":
+        breaks.add(-1)  # insert Chip before turn 0
+
+    for idx, turn in enumerate(dialogue):
+        speaker = turn.get("speaker")
+
+        if not speaker:
+            continue
+
+        # RULE 2 — Speaker introduction
+        if speaker != "chip" and speaker not in seen_speakers:
+            if idx > 0 and dialogue[idx - 1].get("speaker") != "chip":
+                breaks.add(idx - 1)
+
+        seen_speakers.add(speaker)
+
+    return sorted(breaks)
+
+
+# --------------------------------------------------
+# MAIN SHOWRUNNER PASS
+# --------------------------------------------------
+
+def run_showrunner_pass(dialogue_blocks: List[Dict]) -> List[Dict]:
+    for block in dialogue_blocks:
+        dialogue = block.get("dialogue", [])
+        if not isinstance(dialogue, list) or not dialogue:
+            block["showrunner_breaks"] = []
+            continue
+
+        structural_breaks = enforce_broadcast_structure(dialogue)
+        topic_breaks = analyze_topic_shifts(dialogue)
+
+        # Merge + dedupe
+        all_breaks = sorted(set(structural_breaks + topic_breaks))
+
+        block["showrunner_breaks"] = all_breaks
+
+    return dialogue_blocks

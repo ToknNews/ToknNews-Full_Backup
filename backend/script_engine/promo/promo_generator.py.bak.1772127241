@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""
+promo_generator.py — ToknNews Promo Generator (derived-only)
+
+Responsibilities:
+- Validate emotion config
+- Build Grok prompt
+- Call Grok
+- Return a promo artifact suitable for Studio preview + rendering
+"""
+
+from __future__ import annotations
+import time
+import uuid
+from typing import Any, Dict
+
+from backend.runtime.grok_client import call_grok
+from backend.script_engine.promo.emotion_validator import validate_emotion_config
+from backend.script_engine.promo.promo_prompt import build_promo_prompt
+
+
+def generate_promo(payload: Dict[str, Any]) -> Dict[str, Any]:
+    anchor = (payload.get("anchor") or "chip").strip().lower()
+    emotion = (payload.get("emotion") or "confident").strip()
+    intensity = float(payload.get("intensity") if payload.get("intensity") is not None else 0.6)
+
+    ok, reason = validate_emotion_config(anchor, emotion, intensity)
+    if not ok:
+        raise ValueError(reason)
+
+    prompt = build_promo_prompt(payload)
+
+    # Tool support only if top_news is enabled
+    tools = None
+    if bool(payload.get("top_news", False)):
+        tools = ["x_keyword_search", "x_semantic_search"]
+
+    text = call_grok(
+        prompt=prompt,
+        tools=tools,
+        max_tokens=350,
+    ).strip()
+
+    promo_id = payload.get("promo_id") or f"promo_{uuid.uuid4().hex[:10]}"
+    length_sec = int(payload.get("length_sec") or 30)
+
+    return {
+        "ok": True,
+        "promo_id": promo_id,
+        "created_at": time.time(),
+        "segment_type": "promo",
+        "anchor": anchor,
+        "emotion": emotion,
+        "intensity": intensity,
+        "promo_type": payload.get("promo_type", "signal_teaser"),
+        "promo_flavor": payload.get("promo_flavor", "hybrid"),
+        "structure_style": payload.get("structure_style", "cold_open"),
+        "cta_style": payload.get("cta_style", "tease"),
+        "length_sec": length_sec,
+        "text": text,
+        "derived_only": True,
+    }

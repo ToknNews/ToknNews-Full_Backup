@@ -1,83 +1,177 @@
 #!/usr/bin/env python3
 """
 narrative_packager.py
-Turns short-term GPT cluster snapshots into long-term narrative blocks.
+ToknNews — Narrative Block Packager
+
+Turns short-term cluster + sentiment history
+into durable narrative blocks for long-term memory.
 """
 
 import time
 import json
 from pathlib import Path
-from backend.script_engine.analytics_sqlite import DB_PATH, init_db
-import sqlite3
+from statistics import mean
 
-ANALYTICS_DIR = Path("/opt/toknnews/data/analytics")
+from backend.runtime.sqlite_utils import connect_sqlite
+from backend.script_engine.analytics_sqlite import DB_PATH, init_db
 
 WINDOW_HOURS = 6
+MIN_CLUSTER_SNAPSHOTS = 2
 
-def package_if_ready():
-    sentiment_path = ANALYTICS_DIR / "sentiment.json"
-    clusters_path = ANALYTICS_DIR / "clusters.json"
 
-    if not sentiment_path.exists() or not clusters_path.exists():
-        return False
+# ======================================================
+# Helpers
+# ======================================================
 
-    try:
-        sentiment_history = json.loads(sentiment_path.read_text())
-        clusters_history = json.loads(clusters_path.read_text())
-    except:
-        return False
+def _now():
+    return int(time.time())
 
-    now = time.time()
-    cutoff = now - WINDOW_HOURS * 3600
 
-    # Filter last 6h
-    recent_clusters = [c for c in clusters_history if c.get("ts", now) >= cutoff]
-    recent_sentiment = [s for s in sentiment_history if s.get("ts", now) >= cutoff]
+def _window_start():
+    return _now() - WINDOW_HOURS * 3600
 
-    if len(recent_clusters) < 2:
-        return False
 
-    # Determine dominant cluster by frequency
-    name_counts = {}
-    for c in recent_clusters:
-        for cluster in c["clusters"]:
-            name = cluster["name"]
-            name_counts[name] = name_counts.get(name, 0) + 1
+# ======================================================
+# Main Packager
+# ======================================================
 
-    dominant = max(name_counts, key=name_counts.get)
+def package_if_ready() -> bool:
+    """
+    Package recent analytics into a single narrative block.
 
-    # Find representative cluster object
-    rep = None
-    for c in recent_clusters:
-        for cluster in c["clusters"]:
-            if cluster["name"] == dominant:
-                rep = cluster
-                break
-        if rep:
-            break
+    Returns True if a block was created, False otherwise.
+    """
 
-    sentiment_summary = f"Score range: {recent_sentiment[0]['score']} → {recent_sentiment[-1]['score']}"
-
-    # Insert into SQLite
     init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("""
+    cutoff = _window_start()
+
+    # --------------------------------------------------
+    # Load recent cluster history
+    # --------------------------------------------------
+    cur.execute(
+        """
+        SELECT ts, clusters_json
+        FROM clusters_history
+        WHERE ts >= ?
+        ORDER BY ts ASC
+        """,
+        (cutoff,)
+    )
+    cluster_rows = cur.fetchall()
+
+    if len(cluster_rows) < MIN_CLUSTER_SNAPSHOTS:
+        conn.close()
+        return False
+
+    # --------------------------------------------------
+    # Load recent sentiment history
+    # --------------------------------------------------
+    cur.execute(
+        """
+        SELECT ts, score
+        FROM sentiment_history
+        WHERE ts >= ?
+        ORDER BY ts ASC
+        """,
+        (cutoff,)
+    )
+    sentiment_rows = cur.fetchall()
+
+    if not sentiment_rows:
+        conn.close()
+        return False
+
+    # --------------------------------------------------
+    # Prevent duplicate narrative blocks
+    # --------------------------------------------------
+    window_start_ts = cluster_rows[0][0]
+    window_end_ts = cluster_rows[-1][0]
+
+    cur.execute(
+        """
+        SELECT 1 FROM narrative_blocks
+        WHERE start_ts = ? AND end_ts = ?
+        LIMIT 1
+        """,
+        (window_start_ts, window_end_ts)
+    )
+    if cur.fetchone():
+        conn.close()
+        return False
+
+    # --------------------------------------------------
+    # Determine dominant cluster
+    # --------------------------------------------------
+    cluster_counts = {}
+    cluster_objects = {}
+
+    for _, clusters_json in cluster_rows:
+        clusters = json.loads(clusters_json)
+        for c in clusters:
+            name = c.get("name")
+            if not name:
+                continue
+            cluster_counts[name] = cluster_counts.get(name, 0) + 1
+            cluster_objects[name] = c
+
+    dominant_name = max(cluster_counts, key=cluster_counts.get)
+    dominant_cluster = cluster_objects[dominant_name]
+
+    # --------------------------------------------------
+    # Sentiment summary
+    # --------------------------------------------------
+    sentiment_scores = [row[1] for row in sentiment_rows if row[1] is not None]
+
+    avg_sentiment = mean(sentiment_scores)
+    sentiment_summary = (
+        f"Sentiment avg {round(avg_sentiment, 2)} "
+        f"from {round(sentiment_scores[0],2)} → {round(sentiment_scores[-1],2)}"
+    )
+
+    # --------------------------------------------------
+    # Risk heuristic (simple, extensible)
+    # --------------------------------------------------
+    if avg_sentiment < -0.4:
+        risk_level = "High"
+    elif avg_sentiment > 0.4:
+        risk_level = "Low"
+    else:
+        risk_level = "Moderate"
+
+    # --------------------------------------------------
+    # Insert narrative block
+    # --------------------------------------------------
+    cur.execute(
+        """
         INSERT INTO narrative_blocks
-        (start_ts, end_ts, cluster_name, cluster_summary, cluster_json, onchain_json, sentiment_summary, risk_level)
+        (start_ts, end_ts, cluster_name, cluster_summary,
+         cluster_json, onchain_json, sentiment_summary, risk_level)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        recent_clusters[0]["ts"],
-        recent_clusters[-1]["ts"],
-        rep["name"],
-        rep["summary"],
-        json.dumps(rep),
-        "{}",                     # to be filled once onchain history is solid
-        sentiment_summary,
-        "Moderate"
-    ))
+        """,
+        (
+            window_start_ts,
+            window_end_ts,
+            dominant_cluster.get("name"),
+            dominant_cluster.get("summary"),
+            json.dumps(dominant_cluster),
+            json.dumps({}),  # onchain placeholder
+            sentiment_summary,
+            risk_level,
+        )
+    )
+
     conn.commit()
     conn.close()
 
     return True
+
+
+# ======================================================
+# Manual Test
+# ======================================================
+if __name__ == "__main__":
+    created = package_if_ready()
+    print("Narrative block created:", created)

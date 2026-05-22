@@ -17,11 +17,11 @@ This module:
 import os
 import time
 import re
-from openai import OpenAI
+import openai
 from backend.runtime.vault_loader import load_secrets
 secrets = load_secrets()
 
-client = OpenAI(api_key=secrets["openai_api_key"])
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Import PD domain → anchor mapping
 from backend.script_engine.director.pd_controller import get_domain_anchors

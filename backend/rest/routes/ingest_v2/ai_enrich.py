@@ -10,11 +10,12 @@ Adds:
 """
 
 from backend.runtime.vault_loader import load_secrets
-from openai import OpenAI
+import openai
+import os
 import re
 
 secrets = load_secrets()
-client = OpenAI(api_key=secrets.get("openai_api_key", ""))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 ### --- GPT HELPERS -----------------------------------------
 

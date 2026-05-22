@@ -28,13 +28,30 @@ import feedparser
 # ---------------------------------------------------------------
 
 RSS_FEEDS = {
+    # -----------------------------
+    # CRYPTO MEDIA (REACTIVE)
+    # -----------------------------
     "coindesk":      "https://www.coindesk.com/arc/outboundfeeds/rss/",
     "cointelegraph": "https://cointelegraph.com/rss",
     "decrypt":       "https://decrypt.co/feed",
     "theblock":      "https://www.theblock.co/rss",
-    "cryptopanic":   "https://cryptopanic.com/feed/"
-}
+    "bitcoinmagazine": "https://bitcoinmagazine.com/.rss/full/",
+    "cryptoslate":     "https://cryptoslate.com/feed/",
 
+    # -----------------------------
+    # Traditional Finance
+    # -----------------------------
+
+    "bloomberg":       "https://feeds.bloomberg.com/markets/news.rss",
+
+    # -----------------------------
+    # MACRO / GOVERNMENT (PRIMARY)
+    # -----------------------------
+    "bls":           "https://www.bls.gov/feed/bls_latest.rss",
+    "federalreserve":"https://www.federalreserve.gov/feeds/press_all.xml",
+    "treasury":      "https://home.treasury.gov/rss/press-releases.xml",
+    "sec":           "https://www.sec.gov/rss/news/press.xml",
+}
 
 # ---------------------------------------------------------------
 # SINGLE FEED FETCHER
@@ -61,14 +78,23 @@ def _fetch_feed(url, label):
         if not title:
             continue
 
+        link = (e.get("link") or "").strip()
+        summary = (
+            e.get("summary")
+            or e.get("description")
+            or ""
+        ).strip()
+
         results.append({
             "headline": title,
+            "summary": summary[:500],   # safe cap for downstream LLMs
+            "link": link,
             "source": "RSS",
+            "source_label": label,
             "timestamp": time.time()
         })
 
     return results
-
 
 # ---------------------------------------------------------------
 # BATCH FETCHER

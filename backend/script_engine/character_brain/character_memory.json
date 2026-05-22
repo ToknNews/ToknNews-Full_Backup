@@ -1,1 +1,335 @@
-{}
+{
+  "meta": {
+    "version": 2,
+    "updated_at": "2026-03-20T22:03:16.192253+00:00",
+    "created_at": "2026-03-19T05:10:19.414703+00:00"
+  },
+  "recent_items": [],
+  "story_threads": {},
+  "entity_memory": {
+    "BTC": {
+      "entity": "BTC",
+      "domain": "macro",
+      "last_signal_type": "macro_news",
+      "last_summary": "BTC finished the week up 1.6%, while L2s, RWAs and the treasury trade continued to grind lower",
+      "mentions": 13,
+      "last_seen": "2026-03-20T22:00:06.096861+00:00",
+      "first_seen": "2026-03-19T05:10:19.414741+00:00"
+    },
+    "SP500": {
+      "entity": "SP500",
+      "domain": "macro",
+      "last_signal_type": "macro_indicator",
+      "last_summary": "S&P500 Index latest reading: 6699.38",
+      "mentions": 5,
+      "last_seen": "2026-03-20T22:01:35.766791+00:00",
+      "first_seen": "2026-03-20T11:40:41.235541+00:00"
+    },
+    "4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ": {
+      "entity": "4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ",
+      "domain": "markets",
+      "last_signal_type": "solana_alpha_entry_signal",
+      "last_summary": "Alpha score 32.00 for 4cGQdkqkzYUVyZX3vXXAHYJiEQPqjSSu6GbTHaDMpYjZ. Drivers: solana_pumpfun_activity:+2.00, solana_pumpfun_activity:+2.00, solana_pumpfun_activity:+2.00, solana_pumpfun_activity:+2.00, solana_pumpfun_activity:+2.00, solana_pumpfun_activity:+2.00",
+      "mentions": 4,
+      "last_seen": "2026-03-20T22:03:16.192178+00:00",
+      "first_seen": "2026-03-20T11:43:32.326159+00:00"
+    },
+    "SO11111111111111111111111111111111111111112": {
+      "entity": "SO11111111111111111111111111111111111111112",
+      "domain": "markets",
+      "last_signal_type": "solana_alpha_entry_signal",
+      "last_summary": "Alpha score 15.40 for So11111111111111111111111111111111111111112. Drivers: solana_pumpfun_activity:+2.00, solana_pumpfun_activity:+2.00, solana_volume_velocity:+2.30, solana_volume_velocity:+2.30, solana_raydium_pool_init:+2.50, solana_jupiter_swap:+1.20",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:53:55.259755+00:00",
+      "first_seen": "2026-03-20T21:42:53.122758+00:00"
+    },
+    "2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP": {
+      "entity": "2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP",
+      "domain": "regulation",
+      "last_signal_type": "solana_memecoin_trending",
+      "last_summary": "2aC8nKju9tSDGjeQDpahqK8cDMVsmnv8HYwusEcGpump (2aC8nK) ranked #30 with score 5.81. signal_count=4. top_types=solana_jupiter_swap, solana_pumpfun_activity, solana_pumpfun_launch, solana_funny_name_candidate. themes=money.",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:54:04.885301+00:00",
+      "first_seen": "2026-03-20T21:43:02.849631+00:00"
+    },
+    "EPJFWDD5AUFQSSQEM2QN1XZYBAPC8G4WEGGKZWYTDT1V": {
+      "entity": "EPJFWDD5AUFQSSQEM2QN1XZYBAPC8G4WEGGKZWYTDT1V",
+      "domain": "culture",
+      "last_signal_type": "solana_memecoin_of_the_day",
+      "last_summary": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v (EPjFWd) is the current ToknClaw memecoin of the day with score 9.20 and 14 recent signals.",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:54:14.527547+00:00",
+      "first_seen": "2026-03-20T21:43:12.602723+00:00"
+    },
+    "8CW9BHKGX981ALPNYIZBPNPNB3ZDP4BEDYBGQPRUPUMP": {
+      "entity": "8CW9BHKGX981ALPNYIZBPNPNB3ZDP4BEDYBGQPRUPUMP",
+      "domain": "culture",
+      "last_signal_type": "solana_memecoin_of_the_day",
+      "last_summary": "8CW9bHkgx981ALPNyiZbpNPnB3zDp4BedybGQPrUpump selected as memecoin of the day | score=50.00 | drivers=fresh launch x3, funny name potential x3",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:54:24.377914+00:00",
+      "first_seen": "2026-03-20T21:43:22.501271+00:00"
+    },
+    "FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP": {
+      "entity": "FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP",
+      "domain": "regulation",
+      "last_signal_type": "solana_pumpfun_launch",
+      "last_summary": "New Pump.fun launch candidate detected for token FeZHMpW3ba4rwfgFHxSeCEuwXDoB3YNwcy4KFn6hpump",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:54:31.966426+00:00",
+      "first_seen": "2026-03-20T21:43:30.633513+00:00"
+    },
+    "USDT": {
+      "entity": "USDT",
+      "domain": "markets",
+      "last_signal_type": "large_token_transfer",
+      "last_summary": "132,478,830.91 USDT transferred on ethereum from 0xBBBBBbbB... to 0x06CFf708....",
+      "mentions": 4,
+      "last_seen": "2026-03-20T21:54:51.163697+00:00",
+      "first_seen": "2026-03-20T21:43:40.441951+00:00"
+    },
+    "AAVE": {
+      "entity": "AAVE",
+      "domain": "defi",
+      "last_signal_type": "protocol_revenue",
+      "last_summary": "Aave protocol fees remain elevated on recent weekly activity.",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:55:00.948178+00:00",
+      "first_seen": "2026-03-20T21:44:00.248312+00:00"
+    },
+    "UNI": {
+      "entity": "UNI",
+      "domain": "defi",
+      "last_signal_type": "protocol_revenue",
+      "last_summary": "Uniswap fee generation remains strong across current trading activity.",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:55:10.851310+00:00",
+      "first_seen": "2026-03-20T21:44:09.999478+00:00"
+    },
+    "ETH": {
+      "entity": "ETH",
+      "domain": "news",
+      "last_signal_type": "news_theme",
+      "last_summary": "ETH derivatives show a disciplined rebuild of risk, with rising open interest pointing to healthier leverage",
+      "mentions": 2,
+      "last_seen": "2026-03-20T21:55:18.677061+00:00",
+      "first_seen": "2026-03-20T21:44:17.727401+00:00"
+    },
+    "NEWS": {
+      "entity": "NEWS",
+      "domain": "news",
+      "last_signal_type": "news_theme",
+      "last_summary": "He used his badge to intimidate rivals of the self-titled crypto \u201cGodfather.\" Now he's headed to prison for more than five years.",
+      "mentions": 4,
+      "last_seen": "2026-03-20T21:55:34.368296+00:00",
+      "first_seen": "2026-03-20T21:44:25.670198+00:00"
+    }
+  },
+  "domain_heatmap": {
+    "macro": {
+      "score": 19.2,
+      "updated": "2026-03-20T22:01:35.766837+00:00"
+    },
+    "markets": {
+      "score": 11.2,
+      "updated": "2026-03-20T22:03:16.192213+00:00"
+    },
+    "regulation": {
+      "score": 5.2,
+      "updated": "2026-03-20T21:55:34.369166+00:00"
+    },
+    "culture": {
+      "score": 5.2,
+      "updated": "2026-03-20T21:55:34.369169+00:00"
+    },
+    "defi": {
+      "score": 5.2,
+      "updated": "2026-03-20T21:55:34.369179+00:00"
+    },
+    "news": {
+      "score": 7.2,
+      "updated": "2026-03-20T21:55:34.369182+00:00"
+    }
+  },
+  "anchor_memory": {
+    "chip": {
+      "anchor": "chip",
+      "last_seen": "2026-03-20T22:03:16.192185+00:00",
+      "appearances": 47,
+      "domains": {
+        "macro": 19,
+        "markets": 10,
+        "regulation": 4,
+        "culture": 4,
+        "defi": 4,
+        "news": 6
+      },
+      "threads": [
+        "macro::BTC::macro_news",
+        "macro::SP500::macro_indicator",
+        "crypto_alt::4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ::solana_alpha_entry_signal",
+        "crypto_alt::SO11111111111111111111111111111111111111112::solana_alpha_entry_signal",
+        "regulation::2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP::solana_memecoin_trending",
+        "crypto_culture::EPJFWDD5AUFQSSQEM2QN1XZYBAPC8G4WEGGKZWYTDT1V::solana_memecoin_of_the_day",
+        "crypto_culture::8CW9BHKGX981ALPNYIZBPNPNB3ZDP4BEDYBGQPRUPUMP::solana_memecoin_of_the_day",
+        "regulation::FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP::solana_pumpfun_launch",
+        "crypto_major::USDT::large_token_transfer",
+        "defi::AAVE::protocol_revenue",
+        "defi::UNI::protocol_revenue",
+        "news::ETH::news_theme",
+        "news::NEWS::news_theme"
+      ]
+    },
+    "bond": {
+      "anchor": "bond",
+      "last_seen": "2026-03-20T22:01:35.766799+00:00",
+      "appearances": 29,
+      "domains": {
+        "macro": 19,
+        "regulation": 4,
+        "news": 6
+      },
+      "threads": [
+        "macro::BTC::macro_news",
+        "macro::SP500::macro_indicator",
+        "regulation::2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP::solana_memecoin_trending",
+        "regulation::FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP::solana_pumpfun_launch",
+        "news::ETH::news_theme",
+        "news::NEWS::news_theme"
+      ]
+    },
+    "cash": {
+      "anchor": "cash",
+      "last_seen": "2026-03-20T22:03:16.192185+00:00",
+      "appearances": 28,
+      "domains": {
+        "macro": 14,
+        "markets": 10,
+        "culture": 4
+      },
+      "threads": [
+        "macro::BTC::macro_news",
+        "crypto_alt::4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ::solana_alpha_entry_signal",
+        "crypto_alt::SO11111111111111111111111111111111111111112::solana_alpha_entry_signal",
+        "crypto_culture::EPJFWDD5AUFQSSQEM2QN1XZYBAPC8G4WEGGKZWYTDT1V::solana_memecoin_of_the_day",
+        "crypto_culture::8CW9BHKGX981ALPNYIZBPNPNB3ZDP4BEDYBGQPRUPUMP::solana_memecoin_of_the_day",
+        "crypto_major::USDT::large_token_transfer"
+      ]
+    },
+    "reef": {
+      "anchor": "reef",
+      "last_seen": "2026-03-20T22:03:16.192185+00:00",
+      "appearances": 12,
+      "domains": {
+        "markets": 6,
+        "defi": 4,
+        "macro": 2
+      },
+      "threads": [
+        "crypto_alt::4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ::solana_alpha_entry_signal",
+        "crypto_alt::SO11111111111111111111111111111111111111112::solana_alpha_entry_signal",
+        "defi::AAVE::protocol_revenue",
+        "defi::UNI::protocol_revenue"
+      ]
+    },
+    "lawson": {
+      "anchor": "lawson",
+      "last_seen": "2026-03-20T21:55:34.369208+00:00",
+      "appearances": 12,
+      "domains": {
+        "regulation": 4,
+        "news": 6,
+        "macro": 2
+      },
+      "threads": [
+        "regulation::2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP::solana_memecoin_trending",
+        "regulation::FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP::solana_pumpfun_launch",
+        "news::ETH::news_theme",
+        "news::NEWS::news_theme"
+      ]
+    },
+    "ledger": {
+      "anchor": "ledger",
+      "last_seen": "2026-03-20T21:55:34.369208+00:00",
+      "appearances": 10,
+      "domains": {
+        "markets": 4,
+        "defi": 4,
+        "macro": 2
+      },
+      "threads": [
+        "crypto_major::USDT::large_token_transfer",
+        "defi::AAVE::protocol_revenue",
+        "defi::UNI::protocol_revenue"
+      ]
+    }
+  },
+  "episode_log": [
+    {
+      "episode_id": "episode_1774043073",
+      "timestamp": "2026-03-20T21:44:33.482369+00:00",
+      "episode_thesis": "news_theme | macro_news",
+      "domains": [
+        "macro",
+        "markets",
+        "regulation",
+        "culture",
+        "defi",
+        "news"
+      ],
+      "anchors": [
+        "chip",
+        "bond",
+        "cash",
+        "reef",
+        "lawson",
+        "ledger"
+      ],
+      "callback_threads": [
+        "macro::BTC::macro_news",
+        "macro::SP500::macro_indicator",
+        "crypto_alt::4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ::solana_alpha_entry_signal",
+        "crypto_alt::SO11111111111111111111111111111111111111112::solana_alpha_entry_signal",
+        "regulation::2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP::solana_memecoin_trending",
+        "crypto_culture::EPJFWDD5AUFQSSQEM2QN1XZYBAPC8G4WEGGKZWYTDT1V::solana_memecoin_of_the_day",
+        "crypto_culture::8CW9BHKGX981ALPNYIZBPNPNB3ZDP4BEDYBGQPRUPUMP::solana_memecoin_of_the_day",
+        "regulation::FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP::solana_pumpfun_launch",
+        "crypto_major::USDT::large_token_transfer",
+        "defi::AAVE::protocol_revenue"
+      ]
+    },
+    {
+      "episode_id": "episode_1774043734",
+      "timestamp": "2026-03-20T21:55:34.369148+00:00",
+      "episode_thesis": "news_theme | macro_news",
+      "domains": [
+        "macro",
+        "markets",
+        "regulation",
+        "culture",
+        "defi",
+        "news"
+      ],
+      "anchors": [
+        "chip",
+        "bond",
+        "cash",
+        "reef",
+        "lawson",
+        "ledger"
+      ],
+      "callback_threads": [
+        "macro::BTC::macro_news",
+        "macro::SP500::macro_indicator",
+        "crypto_alt::4CGQDKQKZYUVYZX3VXXAHYJIEQPQJSSU6GBTHADMPYJZ::solana_alpha_entry_signal",
+        "crypto_alt::SO11111111111111111111111111111111111111112::solana_alpha_entry_signal",
+        "regulation::2AC8NKJU9TSDGJEQDPAHQK8CDMVSMNV8HYWUSECGPUMP::solana_memecoin_trending",
+        "crypto_culture::EPJFWDD5AUFQSSQEM2QN1XZYBAPC8G4WEGGKZWYTDT1V::solana_memecoin_of_the_day",
+        "crypto_culture::8CW9BHKGX981ALPNYIZBPNPNB3ZDP4BEDYBGQPRUPUMP::solana_memecoin_of_the_day",
+        "regulation::FEZHMPW3BA4RWFGFHXSECEUWXDOB3YNWCY4KFN6HPUMP::solana_pumpfun_launch",
+        "crypto_major::USDT::large_token_transfer",
+        "defi::AAVE::protocol_revenue"
+      ]
+    }
+  ]
+}

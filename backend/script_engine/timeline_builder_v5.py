@@ -1,103 +1,82 @@
 #!/usr/bin/env python3
 """
-timeline_builder_v5.py — ToknNews 2025
-Full rewrite for Editorial Engine v4 + GrokWriter v5
+timeline_builder_v5.py — ToknNews 2025 (ESL-FIRST PATCH)
 
-Upgrades:
-- Integrates editorial_engine_v4 output
-- Uses generate_conversation() (multi-turn dialog)
-- Mode-aware intros (NEWS, MORNING, BREAKING, CHAOS/latenight)
-- Smooth pacing: transitions, setups, conclusions
-- Persona interplay lines (anchors respond to each other)
-- Produces timeline blocks + audio_blocks for rendering engine
+Authoritative timeline builder for:
+- ESL v2 segments
+- PD Engine v4.6
+- Broadcast-realistic pacing
 """
 
 import time
 from typing import List, Dict, Any
 
-from backend.script_engine.persona.pd_engine_v45 import pd_engine
-from backend.script_engine.grok_writer_v5 import generate_conversation
-from script_engine.persona.voice_map import load_voice_map
-from script_engine.dynamic_rundown import generate_rundown
-from script_engine.runtime_estimator import estimate_block_runtime
+from backend.script_engine.director.pd_engine_v46 import pd_engine
+from backend.script_engine.grok_writer_v6 import generate_conversation
+from backend.script_engine.persona.voice_map import load_voice_map
+from backend.script_engine.runtime_estimator import estimate_block_runtime
 
 
-# -------------------------------------------------------
-# TIMELINE BLOCK HELPERS
-# -------------------------------------------------------
+# ============================================================
+# BLOCK HELPERS
+# ============================================================
 
 def _block(text: str, speaker: str, tag: str):
     return {
-        "speaker": speaker.lower(),
-        "text": text,
+        "speaker": speaker,
+        "text": text.strip(),
         "tag": tag,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
 
 
 def _audio_block(text: str, speaker: str, tag: str, voice_map: dict):
     return {
-        "speaker": speaker.lower(),
-        "voice_id": voice_map.get(speaker.lower(), voice_map.get("chip")),
-        "text": text,
+        "speaker": speaker,
+        "voice_id": voice_map.get(speaker, voice_map["chip"]),
+        "text": text.strip(),
         "block_type": tag,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
 
 
-# -------------------------------------------------------
-# MODE-SPECIFIC INTRO + OUTRO
-# -------------------------------------------------------
+# ============================================================
+# INTRO / OUTRO
+# ============================================================
 
-def _intro(mode: str, daypart: str):
+def build_intro(mode: str, daypart: str):
     if mode == "BREAKING":
         return [
-            ("vega",  "vega_intro", "This is a breaking update on ToknNews."),
-            ("chip",  "chip_intro", "We’re tracking a fast-moving development.")
+            ("vega", "vega_intro", "This is a breaking update on ToknNews."),
+            ("chip", "chip_intro", "We’re tracking a fast-moving development."),
         ]
 
-    if mode == "MORNING_BRIEF":
-        return [
-            ("vega", "vega_intro", "You're watching ToknNews."),
-            ("chip", "chip_intro", "Good morning — here’s your concise market rundown.")
-        ]
-
-    if mode == "CHAOS":
-        return [
-            ("vega", "vega_intro", "ToknNews Late Edition — let's embrace the chaos."),
-            ("chip", "chip_intro", "Long day — lots moving. Let’s take this apart.")
-        ]
-
-    # Standard NEWS intro
     return [
         ("vega", "vega_intro", "You're watching ToknNews."),
-        ("chip", "chip_intro", f"Good {daypart}, let’s get into the top stories.")
+        ("chip", "chip_intro", f"Good {daypart}, let’s get into the top stories."),
     ]
 
 
-def _outro(mode: str):
+def build_outro(mode: str):
     if mode == "BREAKING":
         return "This has been a breaking update — more as details emerge."
-    if mode == "MORNING_BRIEF":
-        return "That wraps your morning briefing — see you next cycle."
-    if mode == "CHAOS":
-        return "ToknNews Late Edition — good luck out there."
     return "Thanks for watching ToknNews — see you next cycle."
 
 
-# -------------------------------------------------------
-# MAIN BUILDER — TIMELINE v5
-# -------------------------------------------------------
+# ============================================================
+# MAIN BUILDER
+# ============================================================
 
 def build_timeline(
-    stories: List[Dict[str, Any]],
+    segments: List[Dict[str, Any]],
     *,
-    daypart="evening",
-    show_mode="NEWS",
-    voice_map=None
+    show_mode: str = "NEWS",
+    daypart: str = "evening",
+    voice_map: dict | None = None,
 ):
     """
-    stories: list of enriched story dicts from Editorial Engine v4
+    Input: ESL v2 segments
+    Output: timeline blocks + audio blocks
     """
 
     voice_map = voice_map or load_voice_map()
@@ -106,80 +85,84 @@ def build_timeline(
     audio_blocks = []
     est_runtime = 0.0
 
-    # ---------------------------------------------------
-    # Primary anchor assignment from PD Engine v4
-    # ---------------------------------------------------
-    pd_results = pd_engine(stories, mode=show_mode)
+    # --------------------------------------------------
+    # PD ENGINE (DOMAIN-CORRECT)
+    # --------------------------------------------------
+    pd_packets = pd_engine(segments, mode=show_mode, latenight=(show_mode == "CHAOS"))
 
-    # ---------------------------------------------------
-    # INTRO BLOCKS
-    # ---------------------------------------------------
-    for speaker, tag, text in _intro(show_mode, daypart):
+    # --------------------------------------------------
+    # INTRO
+    # --------------------------------------------------
+    for speaker, tag, text in build_intro(show_mode, daypart):
         timeline.append(_block(text, speaker, tag))
         audio_blocks.append(_audio_block(text, speaker, tag, voice_map))
         est_runtime += estimate_block_runtime(tag, text, speaker)
 
-    # ---------------------------------------------------
-    # RUNDOWN (NEWS / MORNING / HEAVY_MODES)
-    # ---------------------------------------------------
-    if show_mode in ("NEWS", "HEAVY_NEWS", "MORNING_BRIEF"):
-        rundown = generate_rundown(stories, pd_results, daypart)
-        timeline.append(_block(rundown, "chip", "chip_rundown"))
-        audio_blocks.append(_audio_block(rundown, "chip", "chip_rundown", voice_map))
-        est_runtime += estimate_block_runtime("chip_rundown", rundown, "chip")
+    # --------------------------------------------------
+    # SEGMENT LOOPS
+    # --------------------------------------------------
+    for pkt in pd_packets:
+        seg = pkt["story"]
+        anchors = pkt["anchors"]
 
-    # ---------------------------------------------------
-    # MAIN STORY LOOPS
-    # ---------------------------------------------------
-    for item in pd_results:
+        thesis = seg.get("thesis", "")
+        facts = seg.get("facts", [])
+        implication = seg.get("implication", "")
+        max_runtime = seg.get("pd_hints", {}).get("max_runtime_sec", 45)
 
-        story = item["story"]
-        primary = item["primary"]
-        secondary = item.get("secondary")
-        tertiary = item.get("tertiary")
+        # ---------- PRIMARY: Thesis ----------
+        primary = anchors[0]
+        timeline.append(_block(thesis, primary, "segment_thesis"))
+        audio_blocks.append(_audio_block(thesis, primary, "segment_thesis", voice_map))
+        est_runtime += estimate_block_runtime("segment_thesis", thesis, primary)
 
-        # ---- GPT conversation for this story ----
-        convo = generate_conversation(
-            story=story,
-            primary=primary,
-            secondary=secondary,
-            tertiary=tertiary,
-            mode=show_mode
-        )
+        # ---------- FACT PASS (OPTIONAL) ----------
+        for fact in facts[:2]:
+            if est_runtime >= max_runtime:
+                break
+            timeline.append(_block(fact, primary, "segment_fact"))
+            audio_blocks.append(_audio_block(fact, primary, "segment_fact", voice_map))
+            est_runtime += estimate_block_runtime("segment_fact", fact, primary)
 
-        # ---- Convert to timeline + audio blocks ----
-        for j, line in enumerate(convo):
-            speaker = line["speaker"]
-            text = line["text"]
+        # ---------- SECONDARY REACTION ----------
+        if len(anchors) >= 2:
+            secondary = anchors[1]
+            reaction = generate_conversation(
+                story=seg,
+                primary=primary,
+                secondary=secondary,
+                tertiary=None,
+                mode=show_mode,
+                reaction_only=True,
+            )[0]["text"]
 
-            # Stronger first-block tag
-            tag = (
-                "chip_transition" if j == 0 and speaker == "chip"
-                else "anchor_analysis"
-            )
+            timeline.append(_block(reaction, secondary, "anchor_reaction"))
+            audio_blocks.append(_audio_block(reaction, secondary, "anchor_reaction", voice_map))
+            est_runtime += estimate_block_runtime("anchor_reaction", reaction, secondary)
 
-            timeline.append(_block(text, speaker, tag))
-            audio_blocks.append(_audio_block(text, speaker, tag, voice_map))
-            est_runtime += estimate_block_runtime(tag, text, speaker)
+        # ---------- CHIP WRAP (ONLY IF NEEDED) ----------
+        if primary != "chip" and implication:
+            timeline.append(_block(implication, "chip", "segment_wrap"))
+            audio_blocks.append(_audio_block(implication, "chip", "segment_wrap", voice_map))
+            est_runtime += estimate_block_runtime("segment_wrap", implication, "chip")
 
-    # ---------------------------------------------------
-    # OUTRO BLOCK
-    # ---------------------------------------------------
-    outro_text = _outro(show_mode)
-    timeline.append(_block(outro_text, "chip", "chip_outro"))
-    audio_blocks.append(_audio_block(outro_text, "chip", "chip_outro", voice_map))
-    est_runtime += estimate_block_runtime("chip_outro", outro_text, "chip")
+    # --------------------------------------------------
+    # OUTRO
+    # --------------------------------------------------
+    outro = build_outro(show_mode)
+    timeline.append(_block(outro, "chip", "chip_outro"))
+    audio_blocks.append(_audio_block(outro, "chip", "chip_outro", voice_map))
+    est_runtime += estimate_block_runtime("chip_outro", outro, "chip")
 
-    # ---------------------------------------------------
+    # --------------------------------------------------
     # FINAL PACKAGE
-    # ---------------------------------------------------
+    # --------------------------------------------------
     return {
         "blocks": timeline,
         "audio_blocks": audio_blocks,
         "estimated_runtime_sec": est_runtime,
-        "pd_output": pd_results
     }
 
 
 if __name__ == "__main__":
-    print("timeline_builder_v5 loaded.")
+    print("timeline_builder_v5 (ESL-first) loaded.")

@@ -3,11 +3,14 @@
 TOKNNews — Audio Mixer (Final Version)
 Accepts MP3 or WAV automatically.
 """
-
+import random
 import os
 from pydub import AudioSegment
 
 AUDIO_DIR = "/var/www/toknnews/data/audio"
+
+def load_mp3(path: str) -> AudioSegment:
+    return AudioSegment.from_file(path, format="mp3")
 
 def mix_scene(scene_id: str, mp3_paths: list):
     """

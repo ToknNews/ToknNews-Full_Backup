@@ -3,25 +3,19 @@
 conversation_memory.py
 TOKEN NEWS — Conversational Memory Engine (SQLite)
 
-This module stores:
+Stores:
  - short-term memory (per block)
  - episode memory (per episode)
- - long-term persona continuity (multi-episode)
+ - long-term persona continuity
 
-Characters gain awareness of:
- - previous interactions
- - callbacks
- - tone shifts
- - relationships
- - running jokes or themes
-
-Memory decay prevents runaway accumulation.
+Safe for concurrent ingestion + studio preview.
 """
 
-import sqlite3
 import time
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict
+
+from backend.runtime.sqlite_utils import connect_sqlite
 
 DB_PATH = "/opt/toknnews/data/conversation_memory.db"
 
@@ -32,7 +26,7 @@ DB_PATH = "/opt/toknnews/data/conversation_memory.db"
 
 def init_memory_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
     # Short-term (block-level)
@@ -78,15 +72,19 @@ init_memory_db()
 
 
 # ======================================================================
-# SHORT-TERM MEMORY (For Line-to-Line Continuity)
+# SHORT-TERM MEMORY
 # ======================================================================
 
 def store_short_term(episode_id: str, block_index: int, speaker: str, text: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
     c.execute(
-        "INSERT INTO short_term_memory (episode_id, block_index, speaker, text, timestamp) VALUES (?, ?, ?, ?, ?)",
+        """
+        INSERT INTO short_term_memory
+        (episode_id, block_index, speaker, text, timestamp)
+        VALUES (?, ?, ?, ?, ?)
+        """,
         (episode_id, block_index, speaker, text, time.time())
     )
 
@@ -95,15 +93,19 @@ def store_short_term(episode_id: str, block_index: int, speaker: str, text: str)
 
 
 def get_recent_short_term(episode_id: str, limit: int = 3) -> List[Dict]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
-    c.execute("""
-        SELECT speaker, text FROM short_term_memory
+    c.execute(
+        """
+        SELECT speaker, text
+        FROM short_term_memory
         WHERE episode_id = ?
         ORDER BY block_index DESC
         LIMIT ?
-    """, (episode_id, limit))
+        """,
+        (episode_id, limit)
+    )
 
     rows = c.fetchall()
     conn.close()
@@ -112,30 +114,38 @@ def get_recent_short_term(episode_id: str, limit: int = 3) -> List[Dict]:
 
 
 # ======================================================================
-# EPISODE MEMORY (Context Across the Episode)
+# EPISODE MEMORY
 # ======================================================================
 
 def store_episode_memory(episode_id: str, key: str, value: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
-    c.execute("""
-        INSERT OR REPLACE INTO episode_memory (episode_id, key, value, timestamp)
+    c.execute(
+        """
+        INSERT OR REPLACE INTO episode_memory
+        (episode_id, key, value, timestamp)
         VALUES (?, ?, ?, ?)
-    """, (episode_id, key, value, time.time()))
+        """,
+        (episode_id, key, value, time.time())
+    )
 
     conn.commit()
     conn.close()
 
 
 def get_episode_memory(episode_id: str) -> Dict[str, str]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
-    c.execute("""
-        SELECT key, value FROM episode_memory
+    c.execute(
+        """
+        SELECT key, value
+        FROM episode_memory
         WHERE episode_id = ?
-    """, (episode_id,))
+        """,
+        (episode_id,)
+    )
 
     rows = c.fetchall()
     conn.close()
@@ -144,36 +154,38 @@ def get_episode_memory(episode_id: str) -> Dict[str, str]:
 
 
 # ======================================================================
-# LONG-TERM MEMORY (Persona Continuity Across Episodes)
+# LONG-TERM MEMORY
 # ======================================================================
 
 def store_long_term(persona: str, memory_type: str, content: str, strength: float = 1.0):
-    """
-    Strength range:
-    - 1.0 = strong memory (running jokes, identity quirks)
-    - 0.1 = weak hint (light continuity)
-    """
-
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
-    c.execute("""
-        INSERT OR REPLACE INTO long_term_memory (persona, memory_type, content, strength, last_updated)
+    c.execute(
+        """
+        INSERT OR REPLACE INTO long_term_memory
+        (persona, memory_type, content, strength, last_updated)
         VALUES (?, ?, ?, ?, ?)
-    """, (persona, memory_type, content, strength, time.time()))
+        """,
+        (persona, memory_type, content, strength, time.time())
+    )
 
     conn.commit()
     conn.close()
 
 
 def get_long_term(persona: str) -> List[Dict]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
-    c.execute("""
-        SELECT memory_type, content, strength FROM long_term_memory
+    c.execute(
+        """
+        SELECT memory_type, content, strength
+        FROM long_term_memory
         WHERE persona = ?
-    """, (persona,))
+        """,
+        (persona,)
+    )
 
     rows = c.fetchall()
     conn.close()
@@ -182,24 +194,21 @@ def get_long_term(persona: str) -> List[Dict]:
 
 
 # ======================================================================
-# MEMORY DECAY (Prevent Bloat)
+# MEMORY DECAY
 # ======================================================================
 
 def decay_long_term(factor: float = 0.98):
-    """
-    Each run decays long-term memory strength slightly.
-    We keep only meaningful memory over many episodes.
-    """
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
-    c.execute("""
-        UPDATE long_term_memory
-        SET strength = strength * ?
-    """, (factor,))
+    c.execute(
+        "UPDATE long_term_memory SET strength = strength * ?",
+        (factor,)
+    )
 
-    # Remove ultra-low-strength memories
-    c.execute("DELETE FROM long_term_memory WHERE strength < 0.05")
+    c.execute(
+        "DELETE FROM long_term_memory WHERE strength < 0.05"
+    )
 
     conn.commit()
     conn.close()
@@ -210,15 +219,6 @@ def decay_long_term(factor: float = 0.98):
 # ======================================================================
 
 def build_memory_context(persona: str, episode_id: str) -> dict:
-    """
-    Returns structured memory to inject into GPT prompts:
-       {
-         "recent": [last 3 lines],
-         "episode": {...key/value...},
-         "long_term": [...running memories...]
-       }
-    """
-
     return {
         "recent": get_recent_short_term(episode_id, limit=3),
         "episode": get_episode_memory(episode_id),

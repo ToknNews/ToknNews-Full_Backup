@@ -1,0 +1,577 @@
+#!/usr/bin/env python3
+"""
+editorial_synthesizer.py
+ToknNews — Editorial Synthesis Layer (ESL) v2.3
+
+Responsibilities:
+- Collapse noisy stories into broadcast-ready segments
+- Enforce anchor canon by domain
+- Optionally expose numeric + signal context to ESL (read-only)
+- Optionally inject AI editorial context (Grok → OpenAI)
+- Add contextual filler segments when news volume is light
+- Read anchor memory (v1, read-only)
+- Output conforms to PD persona + anchor contract
+"""
+
+from __future__ import annotations
+from dataclasses import dataclass, asdict
+from typing import Any, Dict, List
+from pathlib import Path
+import time
+import json
+import argparse
+import uuid
+import os
+
+# ============================================================
+# OPTIONAL GROK CONTEXT INJECTION (SAFE, GATED)
+# ============================================================
+
+ENABLE_GROK_CONTEXT = os.getenv("ENABLE_GROK_CONTEXT", "false").lower() == "true"
+
+if ENABLE_GROK_CONTEXT:
+    try:
+        from backend.script_engine.editorial.grok_context_injector import (
+            generate_context_for_clusters
+        )
+    except Exception as e:
+        print(f"[ESL][WARN] Grok context unavailable: {e}")
+        ENABLE_GROK_CONTEXT = False
+
+# ============================================================
+# ANCHOR CANON (SINGLE SOURCE OF TRUTH)
+# ============================================================
+
+DOMAIN_ANCHOR_PLAN = {
+    "markets":    {"primary": "cash",   "secondary": "bond"},
+    "macro":      {"primary": "bond",   "secondary": "chip"},
+    "regulation": {"primary": "lawson", "secondary": "bond"},
+    "onchain":    {"primary": "ledger", "secondary": "reef"},
+    "defi":       {"primary": "reef",   "secondary": "ledger"},
+    "ai":         {"primary": "neura",  "secondary": "chip"},
+    "culture":    {"primary": "bitsy",  "secondary": "chip"},
+    "general":    {"primary": "chip",   "secondary": None},
+}
+# LEAD domains only (editorial spine)
+LEAD_DOMAINS = {"markets", "macro", "onchain"}
+
+# Secondary depth domains
+SECONDARY_DOMAINS = {"defi", "regulation", "ai", "culture"}
+
+# ============================================================
+# SEGMENT SCHEMA
+# ============================================================
+
+@dataclass
+class Segment:
+    segment_id: str
+    segment_type: str
+    domain: str
+    thesis: str
+    facts: List[str]
+    implication: str
+    heat: float
+    source_count: int
+    ts: float
+    anchor_plan: Dict[str, Any]
+    pd_hints: Dict[str, Any]
+
+    def to_dict(self):
+        return asdict(self)
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def _now():
+    return time.time()
+
+def _clamp(v, lo=0.0, hi=10.0):
+    return max(lo, min(hi, v))
+
+def _heat(s):
+    return float(s.get("signals", {}).get("composite_heat", s.get("importance", 0)))
+
+def _anchor_plan(domain: str):
+    return DOMAIN_ANCHOR_PLAN.get(domain, DOMAIN_ANCHOR_PLAN["general"])
+
+def _has_market_data(s):
+    return isinstance(s.get("market_data"), dict)
+
+def _is_trending(s):
+    headline = s.get("headline") or ""
+    summary = s.get("summary") or ""
+    t = f"{headline} {summary}".lower()
+    return "coingecko" in t and "trending" in t
+
+def _apply_pd_fields(seg: Dict[str, Any]) -> Dict[str, Any]:
+    plan = seg.get("anchor_plan", {})
+    primary = plan.get("primary", "chip")
+    secondary = plan.get("secondary")
+    tertiary = plan.get("tertiary")
+
+    seg["persona_primary"] = primary
+    seg["persona_secondary"] = secondary
+    seg["persona_tertiary"] = tertiary
+    seg["anchors"] = [a for a in (primary, secondary, tertiary) if a]
+
+    return seg
+
+def _gen_id(prefix):
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+# ============================================================
+# ANCHOR MEMORY (READ-ONLY, v1)
+# ============================================================
+
+ANCHOR_MEMORY_DIR = Path("/opt/toknnews/data/anchors")
+
+def load_anchor_memory(anchor: str) -> Dict[str, Any]:
+    path = ANCHOR_MEMORY_DIR / f"{anchor}.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return {}
+
+# ============================================================
+# SYNTHESIS FUNCTIONS (UNCHANGED)
+# ============================================================
+
+def synthesize_macro_segment(
+    stories,
+    *,
+    numeric_context: Dict[str, Any] | None = None,
+    signal_context: List[Dict[str, Any]] | None = None
+):
+    facts = [
+        f for f in (
+            (s.get("summary") or s.get("headline"))
+            for s in stories[:3]
+        )
+        if isinstance(f, str) and f.strip()
+    ]
+
+    text_blob = " ".join(facts).lower()
+
+    is_cpi = any(k in text_blob for k in ["cpi", "inflation", "consumer prices"])
+    is_rates = any(k in text_blob for k in ["rates", "fed", "fomc", "policy"])
+    is_jobs = any(k in text_blob for k in ["jobs", "employment", "labor"])
+
+    # --- Base thesis ---
+    thesis = "Macro and regulatory conditions are shaping overall risk appetite."
+
+    # Optional numeric softening (never leading)
+    if numeric_context:
+        phrase = _numeric_phrase(numeric_context)
+        if phrase:
+            thesis = f"{thesis} {phrase}"
+
+    # --- Base implication ---
+    implication = "Markets may remain sensitive to upcoming policy signals."
+
+    # --- Pricing vs waiting scaffold ---
+    if is_cpi:
+        implication = (
+            "The market appears to be pricing in near-term inflation stability, "
+            "while waiting for confirmation that policy pressure is actually easing."
+        )
+    elif is_rates:
+        implication = (
+            "Markets are pricing in the current rate environment, "
+            "but remain hesitant to commit until the policy path becomes clearer."
+        )
+    elif is_jobs:
+        implication = (
+            "Labor data is being absorbed as confirmation of resilience, "
+            "while markets wait to see how it alters policy flexibility."
+        )
+
+    # --- ONCHAIN → MACRO CROSSOVER (NEW) ---
+    if numeric_context:
+        eth = numeric_context.get("chains", {}).get("ethereum")
+        if eth:
+            tx_trend = eth.get("activity", {}).get("tx_trend")
+
+            if tx_trend == "up":
+                implication = (
+                    f"{implication} On-chain activity suggests positioning is adjusting beneath the surface, "
+                    "even as macro clarity remains limited."
+                )
+
+    # --- Signals contextualize macro hesitation ---
+    if signal_context:
+        for sig in signal_context:
+            if sig.get("confidence", 0) < 0.7:
+                continue
+
+            if sig.get("signal_type") in {"accumulation", "distribution"}:
+                implication = (
+                    f"{implication} On-chain positioning indicates participants are preparing for outcomes, "
+                    "not reacting to headlines."
+                )
+                break
+
+    return Segment(
+        segment_id=_gen_id("seg_macro"),
+        segment_type="macro",
+        domain="macro",
+        thesis=thesis,
+        facts=facts,
+        implication=implication,
+        heat=_clamp(sum(_heat(s) for s in stories) / len(stories)),
+        source_count=len(stories),
+        ts=_now(),
+        anchor_plan=_anchor_plan("macro"),
+        pd_hints={
+            "allow_discussion": True,
+            "allow_humor": False,
+            "max_runtime_sec": 60,
+        },
+    )
+
+def synthesize_market_segment(
+    stories,
+    *,
+    numeric_context: Dict[str, Any] | None = None,
+    signal_context: List[Dict[str, Any]] | None = None
+):
+    facts = []
+
+    for s in stories[:5]:
+        md = s.get("market_data")
+        if not isinstance(md, dict):
+            continue
+
+        symbol = (
+            md.get("symbol")
+            or md.get("token")
+            or md.get("ticker")
+        )
+
+        price = md.get("price_usd")
+        change = md.get("change_24h_pct")
+
+        # Only append if we have enough data to speak cleanly
+        if symbol and price is not None and change is not None:
+            facts.append(
+                f"{symbol} ${price:.2f} ({change:+.2f}% 24h)"
+            )
+
+    # Base thesis
+    thesis = "Crypto markets are reacting to short-term price and volume shifts."
+
+    # Optional numeric enrichment (unchanged behavior)
+    if numeric_context:
+        phrase = _numeric_phrase(numeric_context)
+        if phrase:
+            thesis = f"{thesis} {phrase}"
+
+    # Base implication
+    implication = "Momentum remains fragile and highly sentiment-driven."
+
+    # Optional signal enrichment (unchanged behavior)
+    if signal_context:
+        sig_phrase = _signal_phrase(signal_context)
+        if sig_phrase:
+            implication = sig_phrase
+
+    return Segment(
+        segment_id=_gen_id("seg_market"),
+        segment_type="market",
+        domain="markets",
+        thesis=thesis,
+        facts=facts,
+        implication=implication,
+        heat=_clamp(sum(_heat(s) for s in stories) / len(stories)),
+        source_count=len(stories),
+        ts=_now(),
+        anchor_plan=_anchor_plan("markets"),
+        pd_hints={
+            "allow_discussion": True,
+            "allow_humor": False,
+            "max_runtime_sec": 45,
+        },
+    )
+
+def synthesize_trending_segment(
+    stories,
+    *,
+    numeric_context: Dict[str, Any] | None = None,
+    signal_context: List[Dict[str, Any]] | None = None
+):
+    symbols = []
+    for s in stories:
+        sym = (
+            s.get("symbol")
+            or s.get("token")
+            or s.get("ticker")
+        )
+        if not sym:
+            continue
+        if sym not in symbols:
+            symbols.append(sym)
+        if len(symbols) >= 5:
+            break
+
+    facts = [f"{sym} trending on CoinGecko" for sym in symbols]
+
+    # Base thesis
+    thesis = "Speculative attention is rotating into trending tokens."
+
+    # Soft numeric enhancement (spoken)
+    if numeric_context:
+        phrase = _numeric_phrase(numeric_context)
+        if phrase:
+            thesis = f"{thesis} {phrase}"
+
+    # Base implication
+    implication = "These moves are often short-lived and momentum-driven."
+
+    # Signal-aware implication upgrade
+    if signal_context:
+        sig_phrase = _signal_phrase(signal_context)
+        if sig_phrase:
+            implication = sig_phrase
+
+    return Segment(
+        segment_id=_gen_id("seg_trend"),
+        segment_type="trend",
+        domain="markets",
+        thesis=thesis,
+        facts=facts,
+        implication=implication,
+        heat=_clamp(sum(_heat(s) for s in stories) / len(stories)),
+        source_count=len(stories),
+        ts=_now(),
+        anchor_plan=_anchor_plan("markets"),
+        pd_hints={
+            "allow_discussion": True,
+            "allow_humor": True,
+            "max_runtime_sec": 40,
+        },
+    )
+
+# ============================================================
+# CONTEXTUAL FILLER SEGMENT (CANONICAL ADDITION)
+# ============================================================
+
+def synthesize_context_segment(
+    *,
+    numeric_context: Dict[str, Any] | None,
+    signal_context: List[Dict[str, Any]] | None,
+    anchor_memory: Dict[str, Any]
+) -> Segment:
+    """
+    Editorial filler used when news volume is light or signals are dense.
+    Spoken content. No new facts. No prediction.
+    """
+
+    # --- Base defaults (safe on any day) ---
+    thesis = (
+        "Stepping back, today’s price action tells less of the story than positioning underneath."
+    )
+    implication = (
+        "These kinds of conditions tend to reward patience more than reaction."
+    )
+
+    # --- Signal-aware reframing ---
+    if signal_context:
+        for sig in signal_context:
+            if sig.get("confidence", 0) < 0.7:
+                continue
+
+            stype = sig.get("signal_type")
+
+            if stype == "accumulation":
+                thesis = (
+                    "Stepping back, markets appear calm on the surface while positioning quietly builds."
+                )
+                implication = (
+                    "That kind of setup often develops before direction becomes obvious."
+                )
+                break
+
+            if stype == "distribution":
+                thesis = (
+                    "Stepping back, stability in price is masking a shift in underlying positioning."
+                )
+                implication = (
+                    "These environments can change character quickly once confidence fades."
+                )
+                break
+
+            if stype in {"capital_rotation", "liquidity_migration"}:
+                thesis = (
+                    "Stepping back, capital appears to be moving internally rather than entering or exiting risk."
+                )
+                implication = (
+                    "That usually signals uncertainty about where leadership comes next."
+                )
+                break
+
+    # --- Numeric tone adjustment (non-quantitative) ---
+    if numeric_context:
+        eth = numeric_context.get("chains", {}).get("ethereum")
+        if eth:
+            tx_trend = eth.get("activity", {}).get("tx_trend")
+            if tx_trend == "up":
+                implication += " Activity is picking up even without strong price follow-through."
+
+    # --- Anchor memory continuity ---
+    if anchor_memory.get("open_threads"):
+        implication += " Several broader themes we’ve been tracking remain unresolved."
+
+    return Segment(
+        segment_id=_gen_id("seg_context"),
+        segment_type="context",
+        domain="general",
+        thesis=thesis,
+        facts=[],
+        implication=implication,
+        heat=5.0,
+        source_count=0,
+        ts=_now(),
+        anchor_plan=_anchor_plan("general"),
+        pd_hints={
+            "allow_discussion": True,
+            "allow_humor": False,
+            "max_runtime_sec": 40,
+            "is_filler": True,
+        },
+    )
+
+# ============================================================
+# MAIN SYNTHESIS LOGIC (EXTENDED, SAFE — FIXED)
+# ============================================================
+
+def synthesize_segments(
+    stories: List[Dict[str, Any]],
+    *,
+    numeric_context: Dict[str, Any] | None = None,
+    signal_context: List[Dict[str, Any]] | None = None
+) -> List[Dict[str, Any]]:
+
+    if not stories:
+        return []
+
+    # ----------------------------------
+    # GROK CONTEXT (MAP: segment_id → str)
+    # ----------------------------------
+    context_map: Dict[str, str] = {}
+
+    if ENABLE_GROK_CONTEXT:
+        try:
+            raw_context = generate_context_for_clusters(stories)
+            if isinstance(raw_context, dict):
+                context_map = raw_context
+        except Exception as e:
+            print(f"[ESL][WARN] Grok context failed: {e}")
+            context_map = {}
+
+    macro, market, trending, rest = [], [], [], []
+
+    for s in stories:
+        d = s.get("domain", "general")
+        if d in ("macro", "regulation"):
+            macro.append(s)
+        elif d == "markets" and _has_market_data(s):
+            market.append(s)
+        elif _is_trending(s):
+            trending.append(s)
+        else:
+            rest.append(s)
+
+    segments: List[Segment] = []
+
+    # ----------------------------------
+    # CONTEXT INJECTION (SEGMENT-SAFE)
+    # ----------------------------------
+    def _inject_context(seg: Segment):
+        # ✅ FIX: only inject THIS segment’s Grok text (string or empty)
+        if ENABLE_GROK_CONTEXT:
+            seg.pd_hints["editorial_context"] = context_map.get(seg.segment_id, "")
+
+        if numeric_context:
+            seg.pd_hints["numeric_context"] = numeric_context
+
+        if signal_context:
+            seg.pd_hints["signal_context"] = signal_context
+
+    # ----------------------------------
+    # PRIMARY SEGMENTS
+    # ----------------------------------
+    if macro:
+        seg = synthesize_macro_segment(macro)
+        _inject_context(seg)
+        segments.append(seg)
+
+    if market:
+        seg = synthesize_market_segment(market)
+        _inject_context(seg)
+        segments.append(seg)
+
+    if trending:
+        seg = synthesize_trending_segment(trending)
+        _inject_context(seg)
+        segments.append(seg)
+
+    # ----------------------------------
+    # SINGLE STORY FALLBACKS
+    # ----------------------------------
+    for s in rest[:5]:
+        domain = s.get("domain", "general")
+        seg = Segment(
+            segment_id=_gen_id("seg_story"),
+            segment_type="single",
+            domain=domain,
+            thesis=s.get("summary") or s.get("headline") or "Story developing...",
+            facts=[],
+            implication="We’ll continue monitoring developments.",
+            heat=_clamp(_heat(s)),
+            source_count=1,
+            ts=_now(),
+            anchor_plan=_anchor_plan(domain),
+            pd_hints={
+                "allow_discussion": True,
+                "allow_humor": False,
+                "max_runtime_sec": 30,
+            },
+        )
+        _inject_context(seg)
+        segments.append(seg)
+
+    # ----------------------------------
+    # CONTEXTUAL FILLER (IF SHORT)
+    # ----------------------------------
+    estimated_runtime = sum(
+        s.pd_hints.get("max_runtime_sec", 30) for s in segments
+    )
+
+    if estimated_runtime < 560:
+        chip_memory = load_anchor_memory("chip")
+        filler = synthesize_context_segment(
+            numeric_context=numeric_context,
+            signal_context=signal_context,
+            anchor_memory=chip_memory,
+        )
+        segments.append(filler)
+
+    return [_apply_pd_fields(s.to_dict()) for s in segments]
+
+# ============================================================
+# CLI EXECUTION
+# ============================================================
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--infile", default="/opt/toknnews/data/rolling_stories.json")
+    parser.add_argument("--outfile", default="/tmp/synth_output.json")
+    args = parser.parse_args()
+
+    raw = json.loads(Path(args.infile).read_text())
+    segments = synthesize_segments(raw)
+
+    Path(args.outfile).write_text(json.dumps(segments, indent=2))
+    print(f"[✓] Wrote {len(segments)} segments -> {args.outfile}")

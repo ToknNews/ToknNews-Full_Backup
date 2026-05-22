@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+
+<title>${TITLE}</title>
+<meta name="description" content="${DESCRIPTION}">
+
+<!-- =========================
+     OpenGraph (ALL PLATFORMS)
+========================= -->
+<meta property="og:type" content="video.other">
+<meta property="og:site_name" content="ToknNews">
+<meta property="og:title" content="${TITLE}">
+<meta property="og:description" content="${DESCRIPTION}">
+<meta property="og:image" content="https://toknnews.com/frontend/assets/img/YT_Tokn_Banner.jpg">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="720">
+<meta property="og:url" content="${PAGE_URL}">
+
+<meta property="og:video" content="${VIDEO_URL}">
+<meta property="og:video:secure_url" content="${VIDEO_URL}">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="1280">
+<meta property="og:video:height" content="720">
+
+<!-- =========================
+     Twitter / X Player Card
+========================= -->
+<meta name="twitter:card" content="player">
+<meta name="twitter:title" content="${TITLE}">
+<meta name="twitter:description" content="${DESCRIPTION}">
+<meta name="twitter:image" content="https://toknnews.com/frontend/assets/img/YT_Tokn_Banner.jpg">
+
+<!-- THIS MUST BE THE PAGE URL -->
+<meta name="twitter:player" content="${PAGE_URL}">
+<meta name="twitter:player:width" content="1280">
+<meta name="twitter:player:height" content="720">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body style="margin:0;background:#000;color:#fff">
+
+<video
+    controls
+    autoplay
+    muted
+    playsinline
+    preload="metadata"
+    style="width:100%;max-width:960px;display:block;margin:40px auto"
+>
+  <source src="${VIDEO_URL}" type="video/mp4">
+</video>
+
+</body>
+</html>

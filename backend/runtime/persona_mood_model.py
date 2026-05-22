@@ -11,11 +11,16 @@ Controls:
  - exposes a global API for timeline + GPT engines
 
 Moods influence persona style in persona_style_overlay.py.
+
+NOTE:
+- Uses WAL-safe SQLite connections via connect_sqlite() to avoid "database is locked".
 """
 
-import sqlite3
 import time
 import os
+from typing import Dict
+
+from backend.runtime.sqlite_utils import connect_sqlite
 
 DB_PATH = "/opt/toknnews/data/persona_mood.db"
 
@@ -44,6 +49,27 @@ BASELINE_MOODS = {
 MAX_MOOD = 1.0
 MIN_MOOD = 0.0
 
+# Persona sensitivity (how strongly a persona responds to PD flags)
+# Higher = reacts more, lower = steadier.
+PERSONA_SENSITIVITY = {
+    "chip": 0.35,
+    "lawson": 0.30,
+    "neura": 0.35,
+    "bond": 0.25,
+    "ledger": 0.20,
+
+    "ivy": 0.55,
+    "penny": 0.55,
+    "vega": 0.40,
+
+    "cash": 0.80,
+    "reef": 0.90,
+
+    "bitsy": 1.05,
+    "rex": 1.20,
+    "cap": 0.70,
+}
+
 
 # ======================================================================
 # Database Setup
@@ -51,7 +77,7 @@ MIN_MOOD = 0.0
 
 def init_mood_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
     c.execute("""
@@ -80,12 +106,20 @@ init_mood_db()
 # Mood Helpers
 # ======================================================================
 
-def clamp(val, low=0.0, high=1.0):
+def clamp(val: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, val))
 
 
+def apply_inertia(old: float, new: float, factor: float = 0.7) -> float:
+    """
+    Smooth mood transitions.
+    factor closer to 1.0 = more inertia (less change per update)
+    """
+    return old * factor + new * (1.0 - factor)
+
+
 def fetch_mood(persona: str) -> float:
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
     c.execute("SELECT value FROM persona_mood WHERE persona = ?", (persona,))
@@ -95,18 +129,18 @@ def fetch_mood(persona: str) -> float:
     if not row:
         return BASELINE_MOODS.get(persona, 0.2)
 
-    return row[0]
+    return float(row[0])
 
 
 def update_mood_value(persona: str, new_value: float):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_sqlite(DB_PATH)
     c = conn.cursor()
 
     c.execute("""
         UPDATE persona_mood
         SET value = ?, last_update = ?
         WHERE persona = ?
-    """, (new_value, time.time(), persona))
+    """, (float(new_value), time.time(), persona))
 
     conn.commit()
     conn.close()
@@ -116,31 +150,34 @@ def update_mood_value(persona: str, new_value: float):
 # MOOD DRIFT ENGINE
 # ======================================================================
 
-def apply_pd_flags(persona: str, mood: float, pd_flags: dict) -> float:
+def apply_pd_flags(persona: str, mood: float, pd_flags: Dict) -> float:
     """Adjust mood based on Breaking News, volatility, social heat."""
-    is_breaking = pd_flags.get("is_breaking", False)
-    vol = pd_flags.get("volatility_risk", 0)
-    heat = pd_flags.get("social_heat", 0)
+    is_breaking = bool(pd_flags.get("is_breaking", False))
+    vol = float(pd_flags.get("volatility_risk", 0) or 0)
+    heat = float(pd_flags.get("social_heat", 0) or 0)
+
+    sensitivity = PERSONA_SENSITIVITY.get(persona, 0.5)
 
     if is_breaking:
-        # Breaking news → urgency boost, except for humor personas
-        if persona not in ["bitsy", "rex"]:
-            mood += 0.25
+        # Breaking → urgency boost, except humor personas handled by sensitivity
+        mood += 0.25 * sensitivity
 
-    # More volatility → higher energy
-    mood += vol * 0.15
+    # Volatility → energy
+    mood += vol * 0.15 * sensitivity
 
-    # Social heat → caution for serious personas
-    if persona in ["chip", "lawson", "neura", "bond"]:
-        mood -= heat * 0.1
+    # Social heat → caution for serious personas, hype for playful personas
+    if persona in ["chip", "lawson", "neura", "bond", "ledger"]:
+        mood -= heat * 0.10 * sensitivity
     else:
-        mood += heat * 0.05
+        mood += heat * 0.05 * sensitivity
 
     return mood
 
 
 def apply_daypart(persona: str, mood: float, daypart: str) -> float:
     """Daypart influences energy/expressiveness."""
+    daypart = (daypart or "").lower().strip()
+
     if daypart == "morning":
         mood -= 0.05
     elif daypart == "afternoon":
@@ -156,12 +193,15 @@ def apply_daypart(persona: str, mood: float, daypart: str) -> float:
     return mood
 
 
-def apply_memory_effect(persona: str, mood: float, memory_context: dict) -> float:
-    """Memory influences emotional sharpness."""
-    long_term = memory_context.get("long_term", [])
+def apply_memory_effect(persona: str, mood: float, memory_context: Dict) -> float:
+    """
+    Memory influences emotional sharpness.
+    Keeps behavior similar to your original, but safe on missing keys.
+    """
+    long_term = memory_context.get("long_term", []) or []
 
     for mem in long_term:
-        strength = mem["strength"]
+        strength = float(mem.get("strength", 0) or 0)
         # Running themes slightly amplify persona characteristics
         mood += 0.05 * strength
 
@@ -179,20 +219,20 @@ def decay_toward_baseline(persona: str, mood: float) -> float:
 
 def update_persona_mood(
     persona: str,
-    pd_flags: dict,
+    pd_flags: Dict,
     daypart: str,
-    memory_context: dict
+    memory_context: Dict
 ) -> float:
     """
     Apply all mood transforms, update SQLite, and return final mood value.
     """
 
-    mood = fetch_mood(persona)
+    old_mood = fetch_mood(persona)
 
-    # Apply influences:
-    mood = apply_pd_flags(persona, mood, pd_flags)
-    mood = apply_daypart(persona, mood, daypart)
-    mood = apply_memory_effect(persona, mood, memory_context)
+    mood = old_mood
+    mood = apply_pd_flags(persona, mood, pd_flags or {})
+    mood = apply_daypart(persona, mood, daypart or "")
+    mood = apply_memory_effect(persona, mood, memory_context or {})
 
     # Decay toward baseline (prevents runaway mood)
     mood = decay_toward_baseline(persona, mood)
@@ -200,7 +240,10 @@ def update_persona_mood(
     # Clamp
     mood = clamp(mood, MIN_MOOD, MAX_MOOD)
 
-    # Persist to DB
+    # Inertia smoothing (prevents jitter)
+    mood = apply_inertia(old_mood, mood, factor=0.7)
+
+    # Persist
     update_mood_value(persona, mood)
 
     return mood

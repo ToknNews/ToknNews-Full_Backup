@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 """
 run_cycle.py
-ToknNews 2025 — Canonical Ingestion Runner (Transfer Brain v1.0)
+ToknNews — Canonical Ingestion Orchestrator
 
-This is the ONLY ingest runner used by:
- - PM2
- - cron jobs
- - dashboard/manual triggers
- - episode_builder fallback ingestion
+Responsibilities:
+- Provide a single, authoritative entrypoint for ingestion
+- Wrap run_ingestion() with consistent logging and exit codes
+- Avoid any dependency on story payloads or counts
 
-All ingestion flows must go through this file to guarantee
-synchronous, Transfer-Brain-aligned behavior.
-
-Calls:
-    from ingest_controller import run_ingestion
+Contract:
+- run_ingestion() returns True on success, False on failure
 """
 
 import sys
@@ -28,19 +24,26 @@ def main():
     print("===============================\n")
 
     try:
-        data = run_ingestion()
+        success = run_ingestion()
     except Exception:
         print("[RUN_CYCLE] FATAL ERROR:")
         traceback.print_exc()
         sys.exit(1)
 
-    if not data:
-        print("[RUN_CYCLE] WARNING: Ingestion returned 0 stories.")
+    if not success:
+        print("[RUN_CYCLE] WARNING: Ingestion reported failure.")
         sys.exit(2)
 
-    print(f"[RUN_CYCLE] Ingestion completed successfully → {len(data)} stories")
+    print("[RUN_CYCLE] Ingestion completed successfully.")
     print("[RUN_CYCLE] Done.\n")
     return 0
+
+
+# --------------------------------------------------
+# Backward compatibility for PM2 / legacy callers
+# --------------------------------------------------
+def run_cycle():
+    return main()
 
 
 if __name__ == "__main__":

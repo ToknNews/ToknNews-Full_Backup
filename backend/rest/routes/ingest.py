@@ -19,13 +19,7 @@ def list_sources():
 
 @router.get("/run")
 def run_ingest():
-    try:
-        # Trigger the hybrid ingestor (main pipeline)
-        subprocess.Popen(
-            ["python3", "/var/www/toknnews-live/backend/live/hybrid_ingestor.py"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        return {"status": "started", "module": "hybrid_ingestor"}
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+    return {
+        "status": "disabled",
+        "reason": "Legacy ingest_v1 disabled. Use ingest_v2 via admin or PM2."
+    }

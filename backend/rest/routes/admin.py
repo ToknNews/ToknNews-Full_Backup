@@ -1,43 +1,87 @@
 #!/usr/bin/env python3
 """
-admin.py — ToknNews Minimal Admin Routes (stabilized)
-This version avoids importing any missing modules (_load_bank, pd_state, etc.)
-and only exposes safe endpoints needed right now.
+admin.py — ToknNews Admin Routes (canonical, production-safe)
+
+Responsibilities:
+- Trigger canonical ingestion as a separate OS process
+- Keep REST API responsive at all times
+- Expose stable admin endpoints
+- Provide safe placeholders for future systems
+
+IMPORTANT:
+- Ingestion MUST NOT run in-process
+- No threading
+- No async hacks
 """
 
-import json
 import time
-from flask import Blueprint, jsonify, request
-
-from backend.rest.routes.ingest_v2.ingest_controller import run_ingestion
+import subprocess
+import sys
+from flask import Blueprint, jsonify
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/api/admin")
 
 
 # ------------------------
-# Ingestion trigger
+# Ingestion trigger (CANONICAL, NON-BLOCKING)
 # ------------------------
 @admin_bp.route("/ingest", methods=["POST"])
 def trigger_ingest():
-    stories = run_ingestion()
+    """
+    Canonical ingestion trigger.
+
+    UI → POST /api/admin/ingest
+       → spawn separate ingestion process
+       → immediate HTTP 202
+
+    This prevents:
+    - GIL starvation
+    - Socket suspension
+    - UI fetch failures
+    """
+
+    try:
+        subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "backend.rest.routes.ingest_v2.run_cycle",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "runner": "run_cycle",
+            "error": str(e),
+            "timestamp": time.time(),
+        }), 500
+
     return jsonify({
-        "status": "ok",
+        "status": "started",
+        "runner": "run_cycle",
         "timestamp": time.time(),
-        "total": len(stories),
-        "rss_count": len([s for s in stories if s.get("source") == "RSS"]),
-        "api_count": len([s for s in stories if s.get("source") == "API"])
-    })
+    }), 202
 
 
 # ------------------------
-# Ingestion status (placeholder)
+# Ingestion status (SAFE PLACEHOLDER)
 # ------------------------
 @admin_bp.route("/ingest", methods=["GET"])
 def ingest_status():
-    # You can later wire this into a real status store.
+    """
+    Placeholder endpoint.
+
+    Future versions may read from:
+    - SQLite ingest_runs
+    - ingest_history.jsonl
+    """
     return jsonify({
         "status": "ok",
-        "note": "Ingestion status endpoint placeholder (no persistent state wired)."
+        "running": "unknown",
+        "note": "Ingestion runs out-of-process; no live lock state tracked.",
     })
 
 
@@ -46,7 +90,9 @@ def ingest_status():
 # ------------------------
 @admin_bp.route("/pd_state", methods=["GET"])
 def pd_state():
-    # Stub until we rewire a real pd_state module
+    """
+    Stub endpoint to preserve UI compatibility.
+    """
     return jsonify({
         "status": "stub",
         "note": "PD state module temporarily disabled."
@@ -58,7 +104,11 @@ def pd_state():
 # ------------------------
 @admin_bp.route("/storybank", methods=["GET"])
 def storybank_view():
-    # Stub: no story bank wired here to avoid import errors.
+    """
+    Stub endpoint.
+
+    StoryBank will later be backed by a real store.
+    """
     return jsonify({
         "count": 0,
         "stories": [],
@@ -71,7 +121,9 @@ def storybank_view():
 # ------------------------
 @admin_bp.route("/analytics/episodes", methods=["GET"])
 def episodes():
-    # Stub episodes endpoint; can be wired to real data later.
+    """
+    Stub endpoint for episode history analytics.
+    """
     return jsonify({
         "episodes": [],
         "note": "Episodes history temporarily stubbed."

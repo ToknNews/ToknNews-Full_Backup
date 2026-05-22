@@ -1,95 +1,119 @@
 #!/usr/bin/env python3
 """
 audio_block_renderer.py
-TOKEN NEWS — Audio Block Renderer (GPT-first broadcast stack)
+TOKEN NEWS — Audio Block Renderer (PRODUCTION CANON v2 FIXED)
 
-Takes timeline audio blocks and:
-  1. Sends each block to ElevenLabs via tts_renderer
-  2. Collects rendered MP3 files
-  3. Hands them to mixer to produce final scene audio
+Fix:
+- Normalizes speaker names to lowercase before voice lookup
+- Prevents uppercase preview JSON from breaking TTS
 """
 
 import os
-import time
+import argparse
+from pathlib import Path
+from dotenv import load_dotenv
+
 from script_engine.audio.tts_renderer import render_block
 from script_engine.audio.mixer import mix_scene
+from script_engine.editorial.timeline_loader import load_episode_audio_blocks
+
+# -----------------------------------------------------
+# ENV
+# -----------------------------------------------------
+
+load_dotenv("/opt/toknnews/.env")
+
+VOICE_MAP = {
+    "chip":   os.getenv("VOICE_CHIP"),
+    "vega":   os.getenv("VOICE_VEGA"),
+    "cash":   os.getenv("VOICE_CASH"),
+    "ledger": os.getenv("VOICE_LEDGER"),
+    "reef":   os.getenv("VOICE_REEF"),
+    "bond":   os.getenv("VOICE_BOND"),
+    "lawson": os.getenv("VOICE_LAWSON"),
+    "ivy":    os.getenv("VOICE_IVY"),
+    "bitsy":  os.getenv("VOICE_BITSY"),
+    "penny":  os.getenv("VOICE_PENNY"),
+    "neura":  os.getenv("VOICE_NEURA"),
+    "cap":    os.getenv("VOICE_CAP"),
+    "rex":    os.getenv("VOICE_REX"),
+}
+
+AUDIO_DIR = Path("/var/www/toknnews/data/audio")
+AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# =====================================================================
-# MAIN FUNCTION: render all audio blocks for a scene
-# =====================================================================
+# -----------------------------------------------------
+# CORE RENDERER
+# -----------------------------------------------------
 
-def render_audio_blocks(scene_id: str, audio_blocks: list):
-    """
-    Render all audio_blocks into a list of MP3 files and mix them.
+def render_episode_audio():
 
-    audio_blocks format:
-    [
-        {
-            "speaker": "chip",
-            "voice_id": "teAyVVX...",
-            "text": "Welcome to Token News...",
-            "block_type": "chip_intro",
-            "timestamp": 1700000000.12345
-        },
-        ...
-    ]
-    """
+    episode_id, audio_blocks = load_episode_audio_blocks()
+
+    if not episode_id or not audio_blocks:
+        raise RuntimeError("Invalid episode data from timeline_loader")
 
     rendered_paths = []
 
-    for block in audio_blocks:
-        try:
-            # Render using ElevenLabs
-            mp3_path = render_block(block, scene_id)
+    for idx, block in enumerate(audio_blocks):
 
-            if mp3_path:
-                rendered_paths.append(mp3_path)
-            else:
-                print(f"[AudioRenderer] WARNING: No audio rendered for block: {block}")
+        speaker_raw = block.get("speaker")
+        text = block.get("text")
 
-        except Exception as e:
-            print("[AudioRenderer] ERROR during block rendering:", e)
+        if not speaker_raw or not text:
+            continue
 
-    # If nothing rendered, return None safely
+        speaker = speaker_raw.lower()  # 🔥 FIX: normalize case
+
+        voice_id = VOICE_MAP.get(speaker)
+        if not voice_id:
+            print(f"[AudioRenderer] No voice mapped for '{speaker_raw}', skipping")
+            continue
+
+        block_id = f"ep_{episode_id}_{idx:03d}"
+
+        payload = {
+            "speaker": speaker,
+            "voice_id": voice_id,
+            "text": text,
+            "block_type": block.get("block_type", "dialogue"),
+        }
+
+        mp3_path = render_block(payload, block_id)
+        if mp3_path:
+            rendered_paths.append(mp3_path)
+
     if not rendered_paths:
-        print("[AudioRenderer] No blocks rendered. Scene skipped.")
-        return None
+        raise RuntimeError("No audio blocks rendered — aborting")
 
-    # Mix everything into a final audio track
-    try:
-        final_audio_path = mix_scene(scene_id, rendered_paths)
-        print(f"[AudioRenderer] Final audio mixed: {final_audio_path}")
-        return final_audio_path
+    final_audio_path = mix_scene(
+        f"ep_{episode_id}",
+        rendered_paths
+    )
 
-    except Exception as e:
-        print("[AudioRenderer] MIX ERROR:", e)
-        return None
+    print(f"[AudioRenderer] Final audio written → {final_audio_path}")
+    return final_audio_path
 
 
-# =====================================================================
-# TEST MODE
-# =====================================================================
+# -----------------------------------------------------
+# ENTRYPOINT
+# -----------------------------------------------------
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--episode",
+        action="store_true",
+        help="Render full episode audio from latest preview"
+    )
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    # Test blob for local debugging
-    test_blocks = [
-        {
-            "speaker": "chip",
-            "voice_id": "teAyVVX8spybXkITa1A0",
-            "text": "This is a test line from Chip.",
-            "block_type": "chip_test",
-            "timestamp": time.time()
-        },
-        {
-            "speaker": "vega",
-            "voice_id": "Ax1HxHll9ku8pGyIt6kK",
-            "text": "This is Vega checking audio pipeline.",
-            "block_type": "vega_test",
-            "timestamp": time.time()
-        }
-    ]
+    args = parse_args()
 
-    print("[AudioRenderer] Running test render...")
-    output = render_audio_blocks("test_scene", test_blocks)
-    print("Final audio:", output)
+    if args.episode:
+        render_episode_audio()
+    else:
+        print("[AudioRenderer] No action specified. Use --episode")

@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""
+studio_control.py — ToknNews Studio Control API v5.3 (production-safe)
+
+Responsibilities:
+- Generate episode previews (NO audio/video) asynchronously
+- Approve episodes → trigger audio stitching (+ future video)
+- Control autonomous mode
+- Control GPT clustering flags
+- Serve episode history for Studio UI
+"""
+
+import os
+import json
+import time
+import uuid
+import subprocess
+import sys
+from flask import Blueprint, request, jsonify
+
+from backend.script_engine.episode_runner import (
+    generate_episode_script,
+    approve_and_render,
+)
+from backend.runtime.vault_loader import load_secrets
+
+
+# ======================================================
+# BLUEPRINT
+# ======================================================
+
+control_bp = Blueprint(
+    "studio_control",
+    __name__,
+    url_prefix="/api/studio"
+)
+
+SECRETS = load_secrets()
+
+DATA_DIR = "/opt/toknnews/data"
+EP_DIR   = f"{DATA_DIR}/episodes"
+JOB_DIR  = f"{EP_DIR}/jobs"
+
+AUTO_MODE_FILE = f"{DATA_DIR}/autonomous_flag.json"
+GPT_FLAG_FILE  = f"{DATA_DIR}/enable_gpt_clusters.json"
+
+os.makedirs(JOB_DIR, exist_ok=True)
+
+
+# ======================================================
+# JOB HELPERS
+# ======================================================
+
+def _job_path(job_id: str) -> str:
+    return os.path.join(JOB_DIR, f"{job_id}.json")
+
+
+def _read_job(job_id: str) -> dict | None:
+    p = _job_path(job_id)
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p))
+    except Exception:
+        return None
+
+
+def _write_job(job_id: str, update: dict):
+    """
+    Merge updates into existing job file (DO NOT overwrite blindly).
+    This is critical for heartbeat correctness.
+    """
+    base = _read_job(job_id) or {}
+    base.update(update)
+    base["updated_at"] = time.time()
+    with open(_job_path(job_id), "w") as f:
+        json.dump(base, f)
+
+
+# ======================================================
+# PREVIEW JOB SPAWNER
+# ======================================================
+
+def _spawn_preview_job(skip_ingest: bool) -> str:
+    job_id = str(uuid.uuid4())
+
+    # Initial job state
+    _write_job(job_id, {
+        "ok": True,
+        "job_id": job_id,
+        "status": "started",
+        "phase": "queued",
+        "started_at": time.time(),
+        "skip_ingest": bool(skip_ingest),
+    })
+
+    runner_code = f"""
+import time, json, traceback
+from backend.script_engine.episode_runner import generate_episode_script
+
+JOB_ID = "{job_id}"
+JOB_PATH = r"{_job_path(job_id)}"
+SKIP_INGEST = {str(bool(skip_ingest))}
+
+def read_job():
+    try:
+        return json.load(open(JOB_PATH))
+    except Exception:
+        return {{}}
+
+def write_job(update):
+    base = read_job()
+    base.update(update)
+    base["updated_at"] = time.time()
+    with open(JOB_PATH, "w") as f:
+        json.dump(base, f)
+
+try:
+    write_job({{
+        "status": "running",
+        "phase": "ingesting"
+    }})
+
+    ep = generate_episode_script(skip_ingest=SKIP_INGEST)
+
+    write_job({{
+        "status": "done",
+        "phase": "complete",
+        "completed_at": time.time(),
+        "episode_id": ep.get("episode_id"),
+        "mode": ep.get("mode"),
+        "preview_file": ep.get("preview_file"),
+        "runtime_sec": ep.get("runtime_sec"),
+        "blocks": ep.get("blocks"),
+    }})
+
+except Exception as e:
+    write_job({{
+        "status": "error",
+        "phase": "error",
+        "completed_at": time.time(),
+        "error": str(e),
+        "traceback": traceback.format_exc(),
+    }})
+"""
+
+    subprocess.Popen(
+        [sys.executable, "-c", runner_code],
+        cwd="/opt/toknnews",
+        env=os.environ.copy(),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+    return job_id
+
+
+# ======================================================
+# EPISODE GENERATION (ASYNC)
+# ======================================================
+
+@control_bp.route("/episode/generate", methods=["POST"])
+def api_generate_episode():
+    payload = request.json or {}
+    skip_ingest = payload.get("skip_ingest", False)
+
+    job_id = _spawn_preview_job(skip_ingest)
+
+    return jsonify({
+        "ok": True,
+        "status": "started",
+        "job_id": job_id,
+        "poll_url": f"/api/studio/episode/job/{job_id}"
+    }), 202
+
+
+@control_bp.route("/episode/job/<job_id>", methods=["GET"])
+def api_episode_job_status(job_id):
+    job = _read_job(job_id)
+    if not job:
+        return jsonify({"ok": False, "error": "Job not found"}), 404
+    return jsonify(job)
+
+
+# ======================================================
+# PREVIEW FETCH
+# ======================================================
+
+@control_bp.route("/episode/preview/<episode_id>", methods=["GET"])
+def api_fetch_preview(episode_id):
+    path = f"{EP_DIR}/{episode_id}_preview.json"
+    if os.path.exists(path):
+        return jsonify({"ok": True, "preview": json.load(open(path))})
+
+    # fallback via jobs
+    for fn in os.listdir(JOB_DIR):
+        job = _read_job(fn.replace(".json", ""))
+        if job and job.get("episode_id") == episode_id:
+            pf = job.get("preview_file")
+            if pf and os.path.exists(pf):
+                return jsonify({"ok": True, "preview": json.load(open(pf))})
+
+    return jsonify({"ok": False, "error": "Preview not found"}), 404
+
+
+# ======================================================
+# AUTONOMOUS MODE
+# ======================================================
+
+def _set_auto_mode(state: bool):
+    with open(AUTO_MODE_FILE, "w") as f:
+        json.dump({"autonomous": bool(state)}, f)
+
+def _get_auto_mode() -> bool:
+    if not os.path.exists(AUTO_MODE_FILE):
+        return False
+    return json.load(open(AUTO_MODE_FILE)).get("autonomous", False)
+
+
+@control_bp.route("/autonomous/set", methods=["POST"])
+def api_set_autonomous():
+    enabled = bool((request.json or {}).get("enabled", False))
+    _set_auto_mode(enabled)
+    return jsonify({"ok": True, "autonomous": enabled})
+
+
+@control_bp.route("/autonomous/status", methods=["GET"])
+def api_get_autonomous():
+    return jsonify({"ok": True, "autonomous": _get_auto_mode()})
+
+
+# ======================================================
+# HEALTH
+# ======================================================
+
+@control_bp.route("/health", methods=["GET"])
+def health():
+    return jsonify({"ok": True, "time": time.time()})

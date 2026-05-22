@@ -1,9 +1,0 @@
-
-# DEBUG PRINT HELPERS
-def debug_api(name, data):
-    if data is None:
-        logger.warning(f"[{name}] returned None (network/content-type issue)")
-    elif isinstance(data, dict):
-        logger.info(f"[{name}] keys: {list(data.keys())}")
-    else:
-        logger.warning(f"[{name}] non-JSON response: {str(data)[:120]}")

@@ -16,6 +16,7 @@ import traceback
 import requests
 
 from backend.runtime.vault_loader import load_secrets
+from backend.rest.routes.ingest_v2.toknclaw_reader import fetch_toknclaw_signals
 secrets = load_secrets()
 
 MARKETAUX_KEY   = secrets.get("marketaux_key", "")
@@ -190,15 +191,18 @@ def fetch_api_batch():
 
     collectors = [
         fetch_marketaux,
-        fetch_newsdata,
-        fetch_cryptopanic_api,
-        fetch_birdeye,
-        fetch_moralis_prices,
-        fetch_dexscreener,
         fetch_coingecko_trending,
-        fetch_pumpfun,
-        fetch_etherscan,
-        fetch_solscan,
+        fetch_toknclaw_signals,
+
+        # --- DISABLED STEP 2 (LOW SIGNAL / REDUNDANT) ---
+        # fetch_newsdata,
+        # fetch_cryptopanic_api,
+        # fetch_birdeye,
+        # fetch_moralis_prices,
+        # fetch_dexscreener,
+        # fetch_pumpfun,
+        # fetch_etherscan,
+        # fetch_solscan,
     ]
 
     for fn in collectors:

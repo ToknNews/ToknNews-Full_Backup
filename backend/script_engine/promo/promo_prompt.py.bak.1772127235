@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""
+promo_prompt.py — ToknNews Promo Prompt Builder (derived-only)
+
+Builds Grok prompts for short-form promos.
+Does not fetch data or call Grok directly.
+"""
+
+from __future__ import annotations
+from typing import Any, Dict, Optional
+
+
+def build_promo_prompt(payload: Dict[str, Any]) -> str:
+    anchor = (payload.get("anchor") or "chip").strip().lower()
+    promo_type = (payload.get("promo_type") or "signal_teaser").strip()
+    length_sec = int(payload.get("length_sec") or 30)
+
+    emotion = (payload.get("emotion") or "confident").strip()
+    intensity = float(payload.get("intensity") if payload.get("intensity") is not None else 0.6)
+
+    promo_flavor = (payload.get("promo_flavor") or "hybrid").strip()  # refined | degen | hybrid
+    structure_style = (payload.get("structure_style") or "cold_open").strip()
+    cta_style = (payload.get("cta_style") or "tease").strip()
+
+    use_anchor_name = bool(payload.get("use_anchor_name", True))
+    callback_type = (payload.get("callback_type") or "none").strip()  # none | implied_memory | ongoing_theme | previous_episode
+    top_news = bool(payload.get("top_news", False))
+
+    thesis = (payload.get("thesis") or "").strip()
+    if not thesis:
+        thesis = "A market signal is developing and positioning is shifting."
+
+    fact = (payload.get("fact") or "").strip()  # optional “immutable” capsule/verbatim
+
+    # --- language freshness directive (Grok owns phrasing) ---
+    freshness = """
+Language Rules:
+- Use current social-media-native phrasing appropriate for crypto Twitter / Shorts today.
+- Prefer terminology that feels live, not institutional.
+- Avoid outdated slang, stale meme formats, and recycled catchphrases.
+- Do not explain slang. Do not force memes.
+- Keep phrasing concise and spoken-word friendly.
+""".strip()
+
+    # --- safety rails ---
+    rails = """
+Truth & Safety Rules:
+- Do NOT fabricate facts, numbers, or prior claims.
+- If a fact is provided, treat it as immutable (you may rephrase around it, but do not alter it).
+- If top_news mode is enabled, you may use x_keyword_search/x_semantic_search to ground phrasing in current headlines,
+  but do not quote large passages and do not claim certainty beyond what you found.
+""".strip()
+
+    # --- emotion block (behavioral, not descriptive) ---
+    emotion_block = f"""
+Emotional State:
+- Primary emotion: {emotion}
+- Intensity: {intensity:.2f} (0.0 to 1.0)
+- Express through pacing, emphasis, and phrasing.
+- Do NOT explicitly describe your emotion.
+""".strip()
+
+    # --- structure rules ---
+    structure = f"""
+Structure:
+- Promo type: {promo_type}
+- Structure style: {structure_style}
+- Promo flavor: {promo_flavor}
+- Length: {length_sec} seconds (tight cadence)
+- Optional self-identification by name: {"allowed once" if use_anchor_name else "not allowed"}
+- Callback: {callback_type} (if not 'none', imply continuity without specific false references)
+- End with CTA style: {cta_style}
+""".strip()
+
+    # --- core instruction ---
+    top_news_clause = ""
+    if top_news:
+        top_news_clause = """
+Top News Mode:
+- First, use tools (x_keyword_search and/or x_semantic_search) to identify 2–3 current crypto market headlines.
+- Then write ONE promo that references the top theme (do not list headlines as a list; weave naturally).
+""".strip()
+
+    fact_clause = ""
+    if fact:
+        fact_clause = f"""
+Fact (immutable):
+- {fact}
+""".strip()
+
+    prompt = f"""
+You are {anchor}, an on-air personality for ToknNews.
+
+{freshness}
+
+{rails}
+
+{emotion_block}
+
+{structure}
+
+Thesis:
+- {thesis}
+
+{fact_clause}
+
+{top_news_clause}
+
+Return ONLY the spoken dialogue text. No labels. No JSON. No markdown.
+""".strip()
+
+    return prompt

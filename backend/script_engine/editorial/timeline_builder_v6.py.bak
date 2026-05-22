@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""
+timeline_builder_v6.py
+ToknNews — Episode Timeline Builder (v6)
+
+INPUT:
+  /opt/toknnews/data/stories/dialogue_blocks.json
+
+OUTPUT:
+  /opt/toknnews/data/episodes/episode_timeline.json
+
+Responsibilities:
+- Enforce show structure
+- Order segments by domain + heat
+- Inject Chip transitions
+- Cap total runtime
+- Produce audio-ready timeline
+"""
+
+import json
+import time
+from pathlib import Path
+
+# ======================================================
+# PATHS
+# ======================================================
+
+INPUT_PATH = Path("/opt/toknnews/data/stories/dialogue_blocks.json")
+OUTPUT_PATH = Path("/opt/toknnews/data/episodes/episode_timeline.json")
+
+OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+# ======================================================
+# CONFIG
+# ======================================================
+
+TARGET_RUNTIME_SEC = 360  # 6 minutes
+
+DOMAIN_PRIORITY = [
+    "macro",
+    "markets",
+    "defi",
+    "ai",
+    "culture"
+]
+
+# ======================================================
+# HELPERS
+# ======================================================
+
+def domain_rank(domain: str) -> int:
+    try:
+        return DOMAIN_PRIORITY.index(domain)
+    except ValueError:
+        return len(DOMAIN_PRIORITY)
+
+def chip_transition(prev_domain: str, next_domain: str) -> dict:
+    return {
+        "type": "transition",
+        "speaker": "chip",
+        "text": f"Alright — shifting from {prev_domain} to {next_domain}.",
+        "ts": time.time()
+    }
+
+def chip_opening() -> dict:
+    return {
+        "type": "monologue",
+        "speaker": "chip",
+        "text": "Welcome back. Here’s what actually matters right now.",
+        "ts": time.time()
+    }
+
+def chip_outro() -> dict:
+    return {
+        "type": "monologue",
+        "speaker": "chip",
+        "text": "That’s it for now. Stay sharp — we’ll be watching.",
+        "ts": time.time()
+    }
+
+# ======================================================
+# MAIN BUILDER
+# ======================================================
+
+def build_timeline(dialogue_blocks: list) -> list:
+    timeline = []
+    runtime = 0
+
+    # -----------------------------
+    # OPENING
+    # -----------------------------
+    timeline.append(chip_opening())
+
+    # -----------------------------
+    # SORT SEGMENTS
+    # -----------------------------
+    dialogue_blocks.sort(
+        key=lambda b: (
+            domain_rank(b.get("domain", "")),
+            -b.get("heat", 0)
+        )
+    )
+
+    prev_domain = None
+
+    # -----------------------------
+    # ADD SEGMENTS
+    # -----------------------------
+    for block in dialogue_blocks:
+        block_runtime = block.get("runtime_sec", 30)
+
+        if runtime + block_runtime > TARGET_RUNTIME_SEC:
+            break
+
+        domain = block.get("domain", "general")
+
+        if prev_domain and prev_domain != domain:
+            timeline.append(chip_transition(prev_domain, domain))
+
+        timeline.append({
+            "type": "dialogue",
+            "segment_id": block.get("narrative_id"),
+            "domain": domain,
+            "anchors": block.get("anchors", []),
+            "turns": block.get("dialogue", []),
+            "runtime_sec": block_runtime,
+            "ts": time.time()
+        })
+
+        runtime += block_runtime
+        prev_domain = domain
+
+    # -----------------------------
+    # OUTRO
+    # -----------------------------
+    timeline.append(chip_outro())
+
+    return timeline
+
+# ======================================================
+# ENTRYPOINT
+# ======================================================
+
+def main():
+    if not INPUT_PATH.exists():
+        raise FileNotFoundError(f"Missing input: {INPUT_PATH}")
+
+    dialogue_blocks = json.loads(INPUT_PATH.read_text())
+
+    print(f"[TIMELINE] Loaded {len(dialogue_blocks)} dialogue blocks")
+
+    timeline = build_timeline(dialogue_blocks)
+
+    OUTPUT_PATH.write_text(json.dumps(timeline, indent=2))
+
+    print(f"[TIMELINE] Wrote {len(timeline)} blocks → {OUTPUT_PATH}")
+
+if __name__ == "__main__":
+    main()
